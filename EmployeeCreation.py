@@ -87,7 +87,7 @@ class EnterEmployees:
         age = self.age_spinbox.get()
         role = self.role_combobox.get()
         key = '{:04d}'.format(int(self.key_entry.get()))
-#lk
+        
         # Checking there is an input for every box
         if firstname and lastname and gender and age and role and key:
             checkKey=[]
@@ -116,7 +116,6 @@ class EnterEmployees:
             else:
                 messagebox.showerror('Python Error', 'Error: This key is already in use.')
         else:
-            # Showing error message if any field is empty
             messagebox.showerror('Python Error', 'Error: You have to input all fields.')
 
 # Initialize the tkinter window and create an instance of EnterEmployees
