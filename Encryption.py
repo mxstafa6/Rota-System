@@ -12,7 +12,7 @@ def encrypt(code):
         encrypted_digit = (int(digit) * multiplier + adder) % modulus
         encrypted_code += str(encrypted_digit)
     
-    return int(encrypted_code)
+    return (encrypted_code)
 
 def decrypt(code):
     code = str(code)
@@ -23,4 +23,4 @@ def decrypt(code):
         decrypted_digit = (int(digit) - adder) * pow(multiplier, -1, modulus) % modulus
         decrypted_code += str(decrypted_digit)
     
-    return int(decrypted_code)
+    return (decrypted_code)

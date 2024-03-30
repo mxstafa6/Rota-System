@@ -87,7 +87,7 @@ class EnterEmployees:
         age = self.age_spinbox.get()
         role = self.role_combobox.get()
         key = '{:04d}'.format(int(self.key_entry.get()))
-
+#lk
         # Checking there is an input for every box
         if firstname and lastname and gender and age and role and key:
             checkKey=[]
@@ -95,26 +95,29 @@ class EnterEmployees:
             keys = cursor.fetchall()
             for DBkeys in keys:
                 checkKey.append(decrypt(DBkeys[0]))
-            # Inserting data into SQLite database
-            data_insert_query = '''INSERT INTO Employee_Data (key, firstname, lastname, gender, 
-            age, role) VALUES 
-            (?, ?, ?, ?, ?, ?)'''
-            data_insert_tuple = (encrypt(key), firstname, lastname, gender, age, role)
-            cursor.execute(data_insert_query, data_insert_tuple)
-            conn.commit()
-            conn.close()
-            print(checkKey)
+            if key not in checkKey:
+                # Inserting data into SQLite database
+                data_insert_query = '''INSERT INTO Employee_Data (key, firstname, lastname, gender, 
+                age, role) VALUES 
+                (?, ?, ?, ?, ?, ?)'''
+                data_insert_tuple = (encrypt(key), firstname, lastname, gender, age, role)
+                cursor.execute(data_insert_query, data_insert_tuple)
+                conn.commit()
+                conn.close()
+                print(checkKey)
 
-            # Resetting the entry Boxes
-            self.first_name_entry.delete(0, 'end')
-            self.last_name_entry.delete(0, 'end')
-            self.key_entry.delete(0, 'end')
-            self.gender_combobox.set('')
-            self.age_spinbox.delete(0, 'end')
-            self.role_combobox.set('')
+                # Resetting the entry Boxes
+                self.first_name_entry.delete(0, 'end')
+                self.last_name_entry.delete(0, 'end')
+                self.key_entry.delete(0, 'end')
+                self.gender_combobox.set('')
+                self.age_spinbox.delete(0, 'end')
+                self.role_combobox.set('')
+            else:
+                messagebox.showerror('Python Error', 'Error: This key is already in use.')
         else:
             # Showing error message if any field is empty
-            messagebox.showerror('Python Error', 'Error: You have to input all fields')
+            messagebox.showerror('Python Error', 'Error: You have to input all fields.')
 
 # Initialize the tkinter window and create an instance of EnterEmployees
 window = tkinter.Tk()
