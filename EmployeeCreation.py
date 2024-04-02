@@ -7,16 +7,6 @@ from Encryption import encrypt, decrypt
 
 employees={}
 
-#Create Employee class to store employees as objects
-class Employee():
-    def __init__(self, firstname, lastname, gender, age, role, key):
-        self.firstname = firstname
-        self.lastname = lastname
-        self.gender = gender
-        self.age = age
-        self.role = role
-        self.PKey = key
-
 class EnterEmployees:
     def __init__(self, window):
         # Initialize the EnterEmployees class with a Tkinter window

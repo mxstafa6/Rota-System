@@ -1,12 +1,23 @@
 import tkinter as tk
 
-class TimetableApp:
+StaffDetails = {}
+
+class Employee():
+    def __init__(self, PKey, name, lastname, age, role, gender):
+        self.key = PKey
+        self.name = name
+        self.lastname = lastname
+        self.age = age
+        self.role = role
+        self.gender = gender
+
+class RotaApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Weekly Timetable")
+        self.root.title("Weekly Rota")
 
         self.days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        self.hours = ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM"]
+        self.employees = []
 
         self.create_timetable()
 
@@ -14,7 +25,7 @@ class TimetableApp:
         for i, day in enumerate(self.days):
             tk.Label(self.root, text=day, width=10, relief=tk.RIDGE).grid(row=0, column=i+1)
         
-        for i, hour in enumerate(self.hours):
+        for i, hour in enumerate(self.employees):
             tk.Label(self.root, text=hour, width=10, relief=tk.RIDGE).grid(row=i+1, column=0)
             
             for j in range(len(self.days)):
@@ -23,5 +34,5 @@ class TimetableApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = TimetableApp(root)
+    app = RotaApp(root)
     root.mainloop()
