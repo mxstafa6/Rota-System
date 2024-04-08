@@ -1,12 +1,26 @@
 import tkinter as tk
+import sqlite3
 
 StaffDetails = {}
 
+conn = sqlite3.connect('data.db')
+cursor = conn.cursor()
+cursor.execute("SELECT key FROM Employee_Data")
+keys = cursor.fetchall()
+cursor.execute("SELECT firstname FROM Employee_Data")  
+firstnames=cursor.fetchall()
+cursor.execute("SELECT lastname FROM Employee_Data")
+lastnames=cursor.fetchall()
+cursor.execute("SELECT age FROM Employee_Data")
+ages=cursor.fetchall()
+cursor.execute("SELECT role FROM Employee_Data")
+roles=cursor.fetchall()
+cursor.execute("SELECT gender FROM Employee_Data")
+genders=cursor.fetchall()
+
 class Employee():
-    def __init__(self, PKey, name, lastname, age, role, gender):
-        self.key = PKey
+    def __init__(self, name, age, role, gender):
         self.name = name
-        self.lastname = lastname
         self.age = age
         self.role = role
         self.gender = gender
