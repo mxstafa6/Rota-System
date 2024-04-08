@@ -6,6 +6,7 @@ from tkinter import messagebox
 from Encryption import encrypt, decrypt
 
 employees={}
+roles=["Waiter", "Runner", "Manager", "Floor Manager", "Bartender", "Barback", "Bar Manager"]
 
 class EnterEmployees:
     def __init__(self, window):
@@ -49,7 +50,7 @@ class EnterEmployees:
         self.age_spinbox.grid(row=3, column=0)
 
         self.role_label = tkinter.Label(self.user_info_frame, text="Role")
-        self.role_combobox = ttk.Combobox(self.user_info_frame, values=["Waiter", "Runner", "Manager", "Floor Manager", "Bartender", "Barback", "Bar Manager"])
+        self.role_combobox = ttk.Combobox(self.user_info_frame, values=roles)
         self.role_label.grid(row=2, column=1)
         self.role_combobox.grid(row=3, column=1)
 
