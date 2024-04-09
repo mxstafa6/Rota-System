@@ -70,7 +70,7 @@ class RotaApp:
             self.row_index += 1
             tk.Label(self.root, text="", width=10).grid(row=self.row_index, column=0)
             self.row_index += 1
-
+        print(self.employees)
 if __name__ == "__main__":
     # Create Tkinter root window and start the event loop
     root = tk.Tk()

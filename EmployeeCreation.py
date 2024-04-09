@@ -1,11 +1,9 @@
 import tkinter
 import sqlite3
-import random
 from tkinter import ttk
 from tkinter import messagebox
 from Encryption import encrypt, decrypt
 
-employees={}
 roles=["Waiter", "Runner", "Manager", "Floor Manager", "Bartender", "Barback", "Bar Manager"]
 
 class EnterEmployees:
@@ -13,103 +11,106 @@ class EnterEmployees:
         # Initialize the EnterEmployees class with a Tkinter window
         self.window = window
         self.window.title("Data Entry Form")
+        # Create GUI widgets
+        self.create_widgets()
 
+    def create_widgets(self):
         # Create a frame to hold the widgets
-        self.frame = tkinter.Frame(window)
+        self.frame = tkinter.Frame(self.window)
         self.frame.pack()
 
         # Create a label frame for user information
-        self.user_info_frame =tkinter.LabelFrame(self.frame, text="User Information")
+        self.user_info_frame = tkinter.LabelFrame(self.frame, text="User Information")
         self.user_info_frame.grid(row=0, column=0, padx=20, pady=10)
 
-        # Create labels and entry widgets for first name, last name and key
-        self.first_name_label = tkinter.Label(self.user_info_frame, text="First Name")
-        self.first_name_label.grid(row=0, column=0)
-        self.first_name_entry = tkinter.Entry(self.user_info_frame)
-        self.first_name_entry.grid(row=1, column=0)
+        # Create input widgets
+        self.create_input_widgets()
 
-        self.last_name_label = tkinter.Label(self.user_info_frame, text="Last Name")
-        self.last_name_label.grid(row=0, column=1)
-        self.last_name_entry = tkinter.Entry(self.user_info_frame)
-        self.last_name_entry.grid(row=1, column=1)
+        # Create the enter data button
+        self.create_button()
 
-        self.key = tkinter.Label(self.user_info_frame, text="User Key")
-        self.key.grid(row=0, column=2)
-        self.key_entry = tkinter.Entry(self.user_info_frame)
-        self.key_entry.grid(row=1, column=2)
+    def create_input_widgets(self):
+        # Labels and entry widgets for user information
+        labels = ["First Name", "Last Name", "User Key", "Gender", "Age", "Role"]
+        self.entries = {}  # Dictionary to hold the entry widgets
+        
+        # Loop through labels and create corresponding entry widgets
+        for i, label_text in enumerate(labels):
+            label = tkinter.Label(self.user_info_frame, text=label_text)
+            label.grid(row=i, column=0, sticky="w", padx=10, pady=5)
 
-        # Create labels and combobox for gender, age, and role
-        self.gender_label = tkinter.Label(self.user_info_frame, text="Gender")
-        self.gender_combobox = ttk.Combobox(self.user_info_frame, values=["Male", "Female", "Other"])
-        self.gender_label.grid(row=2, column=2)
-        self.gender_combobox.grid(row=3, column=2)
+            # Determine type of entry widget based on label
+            if label_text == "User Key":
+                entry = tkinter.Entry(self.user_info_frame)
+            elif label_text == "Gender":
+                entry = ttk.Combobox(self.user_info_frame, values=["Male", "Female", "Other"])
+            elif label_text == "Age":
+                entry = tkinter.Spinbox(self.user_info_frame, from_=16, to=110)
+            elif label_text == "Role":
+                entry = ttk.Combobox(self.user_info_frame, values=roles)
+            else:
+                entry = tkinter.Entry(self.user_info_frame)
 
-        self.age_label = tkinter.Label(self.user_info_frame, text="Age")
-        self.age_spinbox = tkinter.Spinbox(self.user_info_frame, from_=16, to=110)
-        self.age_label.grid(row=2, column=0)
-        self.age_spinbox.grid(row=3, column=0)
+            entry.grid(row=i, column=1, padx=10, pady=5)
+            self.entries[label_text] = entry  # Store entry widget in the dictionary
 
-        self.role_label = tkinter.Label(self.user_info_frame, text="Role")
-        self.role_combobox = ttk.Combobox(self.user_info_frame, values=roles)
-        self.role_label.grid(row=2, column=1)
-        self.role_combobox.grid(row=3, column=1)
-
-        # Set padding for widgets in the label frame
-        for widget in self.user_info_frame.winfo_children():
-            widget.grid_configure(padx=10, pady=5)
-
-        # Create a button to enter data, linked to the enter_data method
+    def create_button(self):
+        # Create button to enter data
         self.button = tkinter.Button(self.frame, text="Enter data", command=self.enter_data)
-        self.button.grid(row=3, column=0, sticky="news", padx=20, pady=10)
+        self.button.grid(row=1, column=0, sticky="news", padx=20, pady=10)
 
     def enter_data(self):
-        # Creating Table in SQLite database if not exists
-        conn = sqlite3.connect('data.db')
-        cursor = conn.cursor()
-        table_create_query = '''CREATE TABLE IF NOT EXISTS Employee_Data 
-                (key TEXT, firstname TEXT, lastname TEXT, gender TEXT, age INT, role TEXT)
-        '''
-        conn.execute(table_create_query)
-
-        # Getting the inputs from data boxes
-        firstname = self.first_name_entry.get()
-        lastname = self.last_name_entry.get()
-        gender = self.gender_combobox.get()
-        age = self.age_spinbox.get()
-        role = self.role_combobox.get()
-        key = '{:04d}'.format(int(self.key_entry.get()))
+        # Get data from entry widgets
+        data = {key: entry.get() for key, entry in self.entries.items()}
         
-        # Checking there is an input for every box
-        if firstname and lastname and gender and age and role and key:
-            checkKey=[]
-            cursor.execute("SELECT key FROM Employee_Data")
-            keys = cursor.fetchall()
-            for DBkeys in keys:
-                checkKey.append(decrypt(DBkeys[0]))
-            if key not in checkKey:
-                # Inserting data into SQLite database
-                data_insert_query = '''INSERT INTO Employee_Data (key, firstname, lastname, gender, 
-                age, role) VALUES 
-                (?, ?, ?, ?, ?, ?)'''
-                data_insert_tuple = (encrypt(key), firstname, lastname, gender, age, role)
-                cursor.execute(data_insert_query, data_insert_tuple)
+        # Check if all fields are filled
+        if all(data.values()):
+            key = '{:04d}'.format(int(data["User Key"]))
+
+            # Check if the key is available
+            if not self.check_key_availability(key):
+                # Insert data into SQLite database
+                conn = sqlite3.connect('data.db')
+                cursor = conn.cursor()
+                cursor.execute('''CREATE TABLE IF NOT EXISTS Employee_Data 
+                                  (key TEXT, firstname TEXT, lastname TEXT, gender TEXT, age INT, role TEXT)''')
+
+                cursor.execute('''INSERT INTO Employee_Data (key, firstname, lastname, gender, age, role) 
+                                  VALUES (?, ?, ?, ?, ?, ?)''', (encrypt(key), data["First Name"], data["Last Name"],
+                                                               data["Gender"], data["Age"], data["Role"]))
                 conn.commit()
                 conn.close()
-                print(checkKey)
 
-                # Resetting the entry Boxes
-                self.first_name_entry.delete(0, 'end')
-                self.last_name_entry.delete(0, 'end')
-                self.key_entry.delete(0, 'end')
-                self.gender_combobox.set('')
-                self.age_spinbox.delete(0, 'end')
-                self.role_combobox.set('')
+                # Clear entry fields after successful entry
+                self.clear_entry_fields()
             else:
-                messagebox.showerror('Python Error', 'Error: This key is already in use.')
+                # Show error message if key is already in use
+                messagebox.showerror('Error', 'This key is already in use.')
         else:
-            messagebox.showerror('Python Error', 'Error: You have to input all fields.')
+            # Show error message if not all fields are filled
+            messagebox.showerror('Error', 'You have to input all fields.')
 
-# Initialize the tkinter window and create an instance of EnterEmployees
-window = tkinter.Tk()
-app = EnterEmployees(window)
-window.mainloop()
+    def check_key_availability(self, key):
+        # Check if the key is already in use
+        conn = sqlite3.connect('data.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT key FROM Employee_Data WHERE key=?", (encrypt(key),))
+        existing_key = cursor.fetchone()
+        conn.close()
+
+        return existing_key is not None
+
+
+    def clear_entry_fields(self):
+        # Clear all entry fields
+        for entry in self.entries.values():
+            entry.delete(0, 'end')
+
+def main():
+    # Create main window and run the application
+    window = tkinter.Tk()
+    app = EnterEmployees(window)
+    window.mainloop()
+
+if __name__ == "__main__":
+    main()
