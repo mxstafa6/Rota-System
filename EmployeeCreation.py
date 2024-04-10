@@ -2,7 +2,7 @@ import tkinter
 import sqlite3
 from tkinter import ttk
 from tkinter import messagebox
-from Encryption import encrypt, decrypt
+from Encryption import encrypt
 
 roles=["Waiter", "Runner", "Manager", "Floor Manager", "Bartender", "Barback", "Bar Manager"]
 

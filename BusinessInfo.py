@@ -30,25 +30,23 @@ class EnterWorkData:
 
     def create_input_widgets(self):
         # Labels and entry widgets for user information
-        labels = ["Days Open", "Hours On Open Days"]
-        self.entries = {}  # Dictionary to hold the entry widgets
-        
+        labels = ["Days Open"]
+
         # Loop through labels and create corresponding entry widgets
         for i, label_text in enumerate(labels):
             label = tkinter.Label(self.user_info_frame, text=label_text)
-            label.grid(row=i, column=0, sticky="w", padx=10, pady=5)
+            label.grid(row=0, column=0, sticky="n", padx=10, pady=5)
 
             # Determine type of entry widget based on label
             if label_text == "Days Open":
                 selected_days=[]
                 for x in range(len(days)):
-                    l = ttk.Checkbutton(window, text=days[x], variable=days[x],command=lambda x=days[x]:selected_days.append(x))
+                    l = ttk.Checkbutton(label, text=days[x], variable=days[x],command=lambda x=days[x]:selected_days.append(x))
                     l.pack(anchor = 'w')
-                ttk.Button(window,text="Ok",command=lambda: [print(selected_days),window.destroy()]).pack()
+                ttk.Button(label,text="Ok",command=lambda: [print(selected_days),label.destroy()]).pack()
             entry = tkinter.Entry(self.user_info_frame)
 
-            entry.grid(row=i, column=1, padx=10, pady=5)
-            self.entries[label_text] = entry  # Store entry widget in the dictionary
+    # Store entry widget in the dictionary
 
     #def create_button(self):
         # Create button to enter data
