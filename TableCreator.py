@@ -1,15 +1,6 @@
 import tkinter as tk
 import sqlite3
 
-class Employee:
-    def __init__(self, firstname, lastname, age, role, gender):
-        # Initialize Employee object with provided attributes
-        self.firstname = firstname.strip()
-        self.lastname = lastname.strip()
-        self.age = age
-        self.role = role
-        self.gender = gender
-
 class RotaApp:
     def __init__(self, root):
         # Initialize RotaApp object
@@ -19,29 +10,11 @@ class RotaApp:
         # Days of the week
         self.days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
-        # Fetch employee data from the database
-        self.employees = self.get_employee_data()
+        
         self.row_index = 1  # Initialize row index
 
         # Create the timetable GUI
         self.create_timetable()
-
-    def get_employee_data(self):
-        # Retrieve employee data from the database
-        conn = sqlite3.connect('data.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT firstname, lastname, age, role, gender FROM Employee_Data")
-        employees_data = cursor.fetchall()
-
-        # Organize employee data into a dictionary
-        employees = {}
-        for data in employees_data:
-            firstname, lastname, age, role, gender = data
-            employee = Employee(firstname, lastname, age, role, gender)
-            employees.setdefault(role, []).append(employee)
-        
-        conn.close()
-        return employees
 
     def create_timetable(self):
         # Determine maximum name and role lengths
