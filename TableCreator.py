@@ -24,7 +24,7 @@ class RotaApp:
     
     def calculate_max(self):
         # Determine maximum name and role lengths
-        self.max_name_length = max(len(f"{emp.firstname} {emp.lastname}") for emp_list in self.employees.values() for emp in emp_list)
+        self.max_name_length = max(len(emp.name) for emp_list in self.employees.values() for emp in emp_list)
         self.max_role_length = max(len(emp.role) for emp_list in self.employees.values() for emp in emp_list)
 
     def day_labels(self):
@@ -33,22 +33,26 @@ class RotaApp:
             tk.Label(self.root, text=day, width=10, relief=tk.RIDGE).grid(row=0, column=i + 1)
 
     def populate_table(self):
-        # Populate timetable with employee data
+        # Group employees by role
+        employees_by_role = {role: [] for role in roles}
         for employees in self.employees.values():
-            for i in range(len(roles)):
-                for employee in employees:
-                    if employee.role == roles[i]:
-                        tk.Label(self.root, text=roles[i], width=self.max_role_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
-                        self.row_index += 1
-                        employee_name = f"{employee.firstname} {employee.lastname}"
-                        tk.Label(self.root, text=employee_name, width=self.max_name_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
-                        for j in range(len(self.days)):
-                            entry = tk.Entry(self.root, width=self.max_name_length, relief=tk.SOLID)
-                            entry.grid(row=self.row_index, column=j + 1)
+            for employee in employees:
+                employees_by_role[employee.role].append(employee)
 
+        # Populate timetable with employee data grouped by role
+        for role, employees in employees_by_role.items():
+            tk.Label(self.root, text=role, width=self.max_role_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
             self.row_index += 1
+            for employee in employees:
+                tk.Label(self.root, text=employee.name, width=self.max_name_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
+                for j in range(len(self.days)):
+                    entry = tk.Entry(self.root, width=self.max_name_length, relief=tk.SOLID)
+                    entry.grid(row=self.row_index, column=j + 1)
+                self.row_index += 1
+
             tk.Label(self.root, text="", width=10).grid(row=self.row_index, column=0)
             self.row_index += 1
+
 if __name__ == "__main__":
     # Create Tkinter root window and start the event loop
     root = tk.Tk()

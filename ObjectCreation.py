@@ -3,8 +3,7 @@ import sqlite3
 class Employee:
     def __init__(self, firstname, lastname, age, role, gender):
         # Initialize Employee object with provided attributes
-        self.firstname = firstname.strip().capitalize()
-        self.lastname = lastname.strip().capitalize()
+        self.name = firstname.strip().capitalize() + ' ' + lastname.strip().capitalize()
         self.age = age
         self.role = role
         self.gender = gender
