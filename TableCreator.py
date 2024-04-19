@@ -41,17 +41,19 @@ class RotaApp:
 
         # Populate timetable with employee data grouped by role
         for role, employees in employees_by_role.items():
-            tk.Label(self.root, text=role, width=self.max_role_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
-            self.row_index += 1
-            for employee in employees:
-                tk.Label(self.root, text=employee.name, width=self.max_name_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
-                for j in range(len(self.days)):
-                    entry = tk.Entry(self.root, width=self.max_name_length, relief=tk.SOLID)
-                    entry.grid(row=self.row_index, column=j + 1)
+            if employees != []:
+                tk.Label(self.root, text=role, width=self.max_role_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
                 self.row_index += 1
+                for employee in employees:
+                    print(employee.key)
+                    tk.Label(self.root, text=employee.name, width=self.max_name_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
+                    for j in range(len(self.days)):
+                        entry = tk.Entry(self.root, width=self.max_name_length, relief=tk.SOLID)
+                        entry.grid(row=self.row_index, column=j + 1)
+                    self.row_index += 1
 
-            tk.Label(self.root, text="", width=10).grid(row=self.row_index, column=0)
-            self.row_index += 1
+                tk.Label(self.root, text="", width=10).grid(row=self.row_index, column=0)
+                self.row_index += 1
 
 if __name__ == "__main__":
     # Create Tkinter root window and start the event loop

@@ -1,12 +1,14 @@
 import sqlite3
+from Encryption import decrypt
 
 class Employee:
-    def __init__(self, firstname, lastname, age, role, gender):
+    def __init__(self, firstname, lastname, age, role, gender, key):
         # Initialize Employee object with provided attributes
         self.name = firstname.strip().capitalize() + ' ' + lastname.strip().capitalize()
         self.age = age
         self.role = role
         self.gender = gender
+        self.key = key
 
 def Serialize(dict,list):
     # Retrieve employee data from the database
@@ -18,7 +20,7 @@ def Serialize(dict,list):
     for data in employees_data:
         firstname, lastname, age, role, gender, key= data
         list.append(key)
-        employee = Employee(firstname, lastname, age, role, gender)
+        employee = Employee(firstname, lastname, age, role, gender, decrypt(key))
         dict.setdefault(key, []).append(employee)
     conn.close()
 
