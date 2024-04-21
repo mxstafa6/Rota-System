@@ -31,7 +31,7 @@ class EnterEmployees:
 
     def create_input_widgets(self):
         # Labels and entry widgets for user information
-        labels = ["First Name", "Last Name", "User Key", "Gender", "Age", "Role"]
+        labels = ["First Name", "Last Name", "User Key", "Gender", "Age", "Role", "Hourly Pay", "Ability Level"]
         self.entries = {}  # Dictionary to hold the entry widgets
         
         # Loop through labels and create corresponding entry widgets
@@ -48,6 +48,8 @@ class EnterEmployees:
                 entry = tkinter.Spinbox(self.user_info_frame, from_=16, to=110)
             elif label_text == "Role":
                 entry = ttk.Combobox(self.user_info_frame, values=roles)
+            elif label_text == "Ability Level":
+                entry = tkinter.Spinbox(self.user_info_frame, from_=1, to=3)
             else:
                 entry = tkinter.Entry(self.user_info_frame)
 
@@ -65,40 +67,55 @@ class EnterEmployees:
         
         # Check if all fields are filled
         if all(data.values()):
-            key = '{:04d}'.format(int(data["User Key"]))
+            # Check if User Key is a 4-digit number
+            if data["User Key"].isdigit() and len(data["User Key"]) == 4:
+                key = '{:04d}'.format(int(data["User Key"]))
 
-            # Check if the key is available
-            if not self.check_key_availability(key):
-                # Insert data into SQLite database
-                conn = sqlite3.connect('data.db')
-                cursor = conn.cursor()
-                cursor.execute('''CREATE TABLE IF NOT EXISTS Employee_Data 
-                                  (key TEXT, firstname TEXT, lastname TEXT, gender TEXT, age INT, role TEXT)''')
+                # Check if Hourly Pay can be converted to a float
+                try:
+                    hourly_pay = float(data['Hourly Pay'])
+                except ValueError:
+                    messagebox.showerror('Error', 'Hourly Pay must be a valid number.')
+                    return
 
-                cursor.execute('''INSERT INTO Employee_Data (key, firstname, lastname, gender, age, role) 
-                                  VALUES (?, ?, ?, ?, ?, ?)''', (encrypt(key), data["First Name"], data["Last Name"],
-                                                               data["Gender"], data["Age"], data["Role"]))
-                conn.commit()
-                conn.close()
+                # Check if the key is available
+                if not self.check_key_availability(key):
+                    # Insert data into SQLite database
+                    conn = sqlite3.connect('data.db')
+                    cursor = conn.cursor()
+                    cursor.execute('''CREATE TABLE IF NOT EXISTS Employee_Data 
+                                    (key TEXT, firstname TEXT, lastname TEXT, gender TEXT, age INT, role TEXT, pay FLOAT, ability INT)''')
 
-                # Clear entry fields after successful entry
-                self.clear_entry_fields()
+                    cursor.execute('''INSERT INTO Employee_Data (key, firstname, lastname, gender, age, role, pay, ability) 
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (encrypt(key), data["First Name"], data["Last Name"],
+                                                                data["Gender"], data["Age"], data["Role"], round(hourly_pay, 2), data['Ability Level']))
+                    conn.commit()
+                    conn.close()
+
+                    # Clear entry fields after successful entry
+                    self.clear_entry_fields()
+                else:
+                    # Show error message if key is already in use
+                    messagebox.showerror('Error', 'This key is already in use.')
             else:
-                # Show error message if key is already in use
-                messagebox.showerror('Error', 'This key is already in use.')
+                # Show error message if User key is not a 4-digit number.
+                messagebox.showerror('Error', 'User Key must be a 4-digit number.')
         else:
             # Show error message if not all fields are filled
             messagebox.showerror('Error', 'You have to input all fields.')
 
     def check_key_availability(self, key):
         # Check if the key is already in use
-        conn = sqlite3.connect('data.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT key FROM Employee_Data WHERE key=?", (encrypt(key),))
-        existing_key = cursor.fetchone()
-        conn.close()
+        try:
+            conn = sqlite3.connect('data.db')
+            cursor = conn.cursor()
+            cursor.execute("SELECT key FROM Employee_Data WHERE key=?", (encrypt(key),))
+            existing_key = cursor.fetchone()
+            conn.close()
 
-        return existing_key is not None
+            return existing_key is not None
+        except:
+            return None
 
 
     def clear_entry_fields(self):

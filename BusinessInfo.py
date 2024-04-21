@@ -28,23 +28,58 @@ class EnterWorkData:
         # Create the enter data button
         #self.create_button()
 
+    #Handle the toggling of the days
+    def toggle_day(self, day, var, selected_days):
+        if var.get():
+            selected_days.append(day)
+        else:
+            selected_days.remove(day)
+
     def create_input_widgets(self):
         # Labels and entry widgets for user information
         labels = ["Days Open"]
 
         # Loop through labels and create corresponding entry widgets
-        for i, label_text in enumerate(labels):
+        for label_text in labels:
             label = tkinter.Label(self.user_info_frame, text=label_text)
             label.grid(row=0, column=0, sticky="n", padx=10, pady=5)
 
             # Determine type of entry widget based on label
             if label_text == "Days Open":
-                selected_days=[]
-                for x in range(len(days)):
-                    l = ttk.Checkbutton(label, text=days[x], variable=days[x],command=lambda x=days[x]:selected_days.append(x))
-                    l.pack(anchor = 'w')
-                ttk.Button(label,text="Ok",command=lambda: [print(selected_days),label.destroy()]).pack()
-            entry = tkinter.Entry(self.user_info_frame)
+                selected_days = []
+
+                # Create Checkbuttons for each day
+                for day in days:
+                    var = tkinter.BooleanVar()
+                    checkbox = ttk.Checkbutton(self.user_info_frame, text=day, variable=var)
+                    checkbox.grid(sticky="w")
+                    
+                    # Lambda function with default argument to capture the current value of 'day'
+                    checkbox.config(command=lambda d=day, v=var: self.toggle_day(d, v, selected_days))
+
+                # Button to print selected days and destroy the label
+                ok_button = ttk.Button(self.user_info_frame, text="Ok", command=lambda: self.show_hours_window(selected_days))
+                ok_button.grid(row=len(days) + 1, column=0, pady=(5, 0), sticky="w")
+
+        entry = tkinter.Entry(self.user_info_frame)
+
+    def show_hours_window(self, selected_days):
+        # Create a new window for entering hours
+        hours_window = tkinter.Toplevel()
+        hours_window.title("Enter Hours")
+        
+        # Create labels and entry boxes for each selected day
+        for i, day in enumerate(days):
+            if day in selected_days:
+                tkinter.Label(hours_window, text=day).grid(row=i, column=0, sticky="e")
+                entry = tkinter.Entry(hours_window)
+                entry.grid(row=i, column=1)
+
+
+
+
+
+
 
     # Store entry widget in the dictionary
 
