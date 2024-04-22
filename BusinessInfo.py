@@ -1,15 +1,15 @@
 import tkinter
 import sqlite3
 from tkinter import ttk
-from tkinter import messagebox
 
 days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 class EnterWorkData:
+    daysHours={}
     def __init__(self, window):
         # Initialize the EnterWorkData class with a Tkinter window
         self.window = window
-        self.window.title("Data Entry Form")
+        self.window.title("Business Information")
         # Create GUI widgets
         self.create_widgets()
 
@@ -24,9 +24,6 @@ class EnterWorkData:
 
         # Create input widgets
         self.create_input_widgets()
-
-        # Create the enter data button
-        #self.create_button()
 
     #Handle the toggling of the days
     def toggle_day(self, day, var, selected_days):
@@ -66,27 +63,41 @@ class EnterWorkData:
     def show_hours_window(self, selected_days):
         # Create a new window for entering hours
         hours_window = tkinter.Toplevel()
-        hours_window.title("Enter Hours")
+        hours_window.title("Business Information")
         
+        # Dictionary to store day and its opening hour
+        opening_hours = {}
+
         # Create labels and entry boxes for each selected day
-        for i, day in enumerate(days):
+        row_counter = 0
+        for day in days:
             if day in selected_days:
-                tkinter.Label(hours_window, text=day).grid(row=i, column=0, sticky="e")
-                entry = tkinter.Entry(hours_window)
-                entry.grid(row=i, column=1)
+                tkinter.Label(hours_window, text=day).grid(row=row_counter, column=0, sticky="e")
+                hoursEntry = ttk.Spinbox(hours_window, from_=0, to=23, width=2, state="readonly")
+                hoursEntry.grid(row=row_counter, column=1)
+                minutesEntry = ttk.Combobox(hours_window, values=["00", "15", "30", "45"], width=3)
+                minutesEntry.grid(row=row_counter, column=2)
+                minutesEntry.current(0)
+                row_counter += 1
 
+                # Define a function to store the opening hour when entry is made
+                def store_opening_hour(event=None, day=day, hoursEntry=hoursEntry, minutesEntry=minutesEntry):
+                    if event and str(event.type) == "VirtualEvent":
+                        return  # Ignore VirtualEvent
+                    opening_hour = f"{hoursEntry.get()}:{minutesEntry.get()}"
+                    opening_hours[day] = opening_hour
 
+                # Bind the function to the Spinbox entries
+                hoursEntry.config(command=store_opening_hour)
+                minutesEntry.bind("<<ComboboxSelected>>", store_opening_hour)
 
+        # Function to print the dictionary
+        def print_opening_hours():
+            print(opening_hours)
 
-
-
-
-    # Store entry widget in the dictionary
-
-    #def create_button(self):
-        # Create button to enter data
-        #self.button = tkinter.Button(self.frame, text="Enter data", command=self.enter_data)
-        #self.button.grid(row=1, column=0, sticky="news", padx=20, pady=10)
+        # Button to print the dictionary
+        ok_button = ttk.Button(hours_window, text="Ok", command=print_opening_hours)
+        ok_button.grid(row=row_counter, column=0, columnspan=3, pady=(5, 10), sticky="we")
 
 window = tkinter.Tk()
 app = EnterWorkData(window)

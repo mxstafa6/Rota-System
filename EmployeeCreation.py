@@ -43,13 +43,13 @@ class EnterEmployees:
             if label_text == "User Key":
                 entry = tkinter.Entry(self.user_info_frame)
             elif label_text == "Gender":
-                entry = ttk.Combobox(self.user_info_frame, values=["Male", "Female", "Other"])
+                entry = ttk.Combobox(self.user_info_frame, values=["Male", "Female", "Other"],state="readonly")
             elif label_text == "Age":
-                entry = tkinter.Spinbox(self.user_info_frame, from_=16, to=110)
+                entry = tkinter.Spinbox(self.user_info_frame, from_=16, to=110,state="readonly")
             elif label_text == "Role":
-                entry = ttk.Combobox(self.user_info_frame, values=roles)
+                entry = ttk.Combobox(self.user_info_frame, values=roles,state="readonly")
             elif label_text == "Ability Level":
-                entry = tkinter.Spinbox(self.user_info_frame, from_=1, to=3)
+                entry = tkinter.Spinbox(self.user_info_frame, from_=1, to=3,state="readonly")
             else:
                 entry = tkinter.Entry(self.user_info_frame)
 
