@@ -5,7 +5,6 @@ from tkinter import ttk, messagebox
 days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 class EnterWorkData:
-    daysHours={}
     def __init__(self, window):
         # Initialize the EnterWorkData class with a Tkinter window
         self.window = window
@@ -44,8 +43,8 @@ class EnterWorkData:
 
             # Determine type of entry widget based on label
             if label_text == "Weekly Budget":
-                budget_entry = tkinter.Entry(self.user_info_frame)
-                budget_entry.grid(row=i, column=i, padx=30, pady=5)
+                self.budget_entry = tkinter.Entry(self.user_info_frame)
+                self.budget_entry.grid(row=i, column=i, padx=30, pady=5)
             if label_text == "Days Open":
                 selected_days = []
 
@@ -59,13 +58,17 @@ class EnterWorkData:
                     checkbox.config(command=lambda d=day, v=var: self.toggle_day(d, v, selected_days))
 
                 # Button to print selected days and destroy the label
-                try:
-                    budget=float(budget_entry.get())
-                    ok_button = ttk.Button(self.user_info_frame, text="Ok", command=lambda: self.show_hours_window(selected_days))
-                    ok_button.grid(row=len(days) + 1, column=0, pady=(5, 0), sticky="w") 
-                except ValueError:
-                    messagebox.showerror("Error", "Weekly budget must be a valid number")
+                ok_button = ttk.Button(self.user_info_frame, text="Ok", command=lambda: self.validate_budget(selected_days))
+                ok_button.grid(row=len(days) + 1, column=0, pady=(5, 0), sticky="w") 
 
+
+    def validate_budget(self, selected_days):
+        try:
+            self.budget = float(self.budget_entry.get())
+            self.show_hours_window(selected_days)
+        except ValueError:
+            messagebox.showerror("Error", "Weekly budget must be a valid number.")
+    
     def show_hours_window(self, selected_days):
         # Create a new window for entering hours
         hours_window = tkinter.Toplevel()
