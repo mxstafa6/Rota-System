@@ -2,7 +2,7 @@ import sqlite3
 from Encryption import decrypt
 
 class Employee:
-    def __init__(self, firstname, lastname, age, role, gender, pay, ability, key):
+    def __init__(self, firstname, lastname, age, role, gender, pay, ability, key, restaurant):
         # Initialize Employee object with provided attributes
         self.name = firstname.strip().capitalize() + ' ' + lastname.strip().capitalize()
         self.age = age
@@ -11,6 +11,7 @@ class Employee:
         self.key = key
         self.pay = pay
         self.ability = ability
+        self.restaurant = restaurant
 
 def Serialize(dict,list):
     # Retrieve employee data from the database

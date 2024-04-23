@@ -1,6 +1,6 @@
 import tkinter
 import sqlite3
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -10,6 +10,7 @@ class EnterWorkData:
         # Initialize the EnterWorkData class with a Tkinter window
         self.window = window
         self.window.title("Business Information")
+
         # Create GUI widgets
         self.create_widgets()
 
@@ -34,14 +35,17 @@ class EnterWorkData:
 
     def create_input_widgets(self):
         # Labels and entry widgets for user information
-        labels = ["Days Open"]
+        labels = ["Days Open", "Weekly Budget"]
 
         # Loop through labels and create corresponding entry widgets
-        for label_text in labels:
+        for i, label_text in enumerate(labels):
             label = tkinter.Label(self.user_info_frame, text=label_text)
-            label.grid(row=0, column=0, sticky="n", padx=10, pady=5)
+            label.grid(row=0, column=i, sticky="n", padx=10, pady=5)
 
             # Determine type of entry widget based on label
+            if label_text == "Weekly Budget":
+                budget_entry = tkinter.Entry(self.user_info_frame)
+                budget_entry.grid(row=i, column=i, padx=30, pady=5)
             if label_text == "Days Open":
                 selected_days = []
 
@@ -55,10 +59,12 @@ class EnterWorkData:
                     checkbox.config(command=lambda d=day, v=var: self.toggle_day(d, v, selected_days))
 
                 # Button to print selected days and destroy the label
-                ok_button = ttk.Button(self.user_info_frame, text="Ok", command=lambda: self.show_hours_window(selected_days))
-                ok_button.grid(row=len(days) + 1, column=0, pady=(5, 0), sticky="w")
-
-        entry = tkinter.Entry(self.user_info_frame)
+                try:
+                    budget=float(budget_entry.get())
+                    ok_button = ttk.Button(self.user_info_frame, text="Ok", command=lambda: self.show_hours_window(selected_days))
+                    ok_button.grid(row=len(days) + 1, column=0, pady=(5, 0), sticky="w") 
+                except ValueError:
+                    messagebox.showerror("Error", "Weekly budget must be a valid number")
 
     def show_hours_window(self, selected_days):
         # Create a new window for entering hours
