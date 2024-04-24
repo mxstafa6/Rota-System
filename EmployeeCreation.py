@@ -10,7 +10,7 @@ class EnterEmployees:
     def __init__(self, window):
         # Initialize the EnterEmployees class with a Tkinter window
         self.window = window
-        self.window.title("Data Entry Form")
+        self.window.title("Employee Creation")
         # Create GUI widgets
         self.create_widgets()
 
@@ -30,8 +30,15 @@ class EnterEmployees:
         self.create_button()
 
     def create_input_widgets(self):
+        # Get list of restaurants
+        conn = sqlite3.connect('data.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT restaurantName FROM restaurant_data")
+        restaurants = [x[0] for x in cursor.fetchall()] # Extract the first element of each tuple
+        conn.close()
+
         # Labels and entry widgets for user information
-        labels = ["First Name", "Last Name", "User Key", "Gender", "Age", "Role", "Hourly Pay", "Ability Level"]
+        labels = ["First Name", "Last Name", "User Key", "Gender", "Age", "Role", "Hourly Pay", "Ability Level", "Restaurant"]
         self.entries = {}  # Dictionary to hold the entry widgets
         
         # Loop through labels and create corresponding entry widgets
@@ -40,8 +47,8 @@ class EnterEmployees:
             label.grid(row=i, column=0, sticky="w", padx=10, pady=5)
 
             # Determine type of entry widget based on label
-            if label_text == "User Key":
-                entry = tkinter.Entry(self.user_info_frame)
+            if label_text == "Restaurant":
+                entry = ttk.Combobox(self.user_info_frame, values=restaurants, state="readonly")
             elif label_text == "Gender":
                 entry = ttk.Combobox(self.user_info_frame, values=["Male", "Female", "Other"],state="readonly")
             elif label_text == "Age":
@@ -84,11 +91,11 @@ class EnterEmployees:
                     conn = sqlite3.connect('data.db')
                     cursor = conn.cursor()
                     cursor.execute('''CREATE TABLE IF NOT EXISTS Employee_Data 
-                                    (key TEXT, firstname TEXT, lastname TEXT, gender TEXT, age INT, role TEXT, pay FLOAT, ability INT)''')
+                                    (key TEXT, firstname TEXT, lastname TEXT, gender TEXT, age INT, role TEXT, pay FLOAT, ability INT, restaurantName TEXT)''')
 
-                    cursor.execute('''INSERT INTO Employee_Data (key, firstname, lastname, gender, age, role, pay, ability) 
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (encrypt(key), data["First Name"], data["Last Name"],
-                                                                data["Gender"], data["Age"], data["Role"], round(hourly_pay, 2), data['Ability Level']))
+                    cursor.execute('''INSERT INTO Employee_Data (key, firstname, lastname, gender, age, role, pay, ability, restaurantName) 
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (encrypt(key), data["First Name"], data["Last Name"],
+                                                                data["Gender"], data["Age"], data["Role"], round(hourly_pay, 2), data['Ability Level'], data['Restaurant']))
                     conn.commit()
                     conn.close()
 
