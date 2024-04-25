@@ -8,8 +8,7 @@ class RotaApp:
         # Initialize RotaApp object
         self.employees={}
         self.keys=[]
-        self.roles=[]
-        Serialize(self.employees,self.keys)
+        Serialize(self.employees,self.keys, '1a')
         
         self.root = root
         self.root.title("Weekly Rota")
