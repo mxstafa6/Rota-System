@@ -104,6 +104,10 @@ class EnterWorkData:
         add_button = ttk.Button(roles_window, text="Add Role", command=add_role)
         add_button.grid(row=1, column=0, padx=30, pady=5)
 
+        # Create a button to add to the SQL Database
+        finished_button = ttk.Button(roles_window, text = "Done", command = self.enter_restaurantdata)
+        finished_button.grid(row=2, column=0, padx=30, pady=5)
+
     def show_hours_window(self):
         # Show the window to enter opening and closing hours
         hours_window = tkinter.Toplevel()

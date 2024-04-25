@@ -17,12 +17,12 @@ def Serialize(dict,list):
     # Retrieve employee data from the database
     conn = sqlite3.connect('data.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT firstname, lastname, age, role, gender, pay, ability, key, FROM Employee_Data")
+    cursor.execute("SELECT firstname, lastname, age, role, gender, pay, ability, key, restaurantName FROM Employee_Data")
     employees_data = cursor.fetchall()
     # Organize employee data as objects, stored in the dictionary by key
     for data in employees_data:
-        firstname, lastname, age, role, gender, pay, ability, key= data
+        firstname, lastname, age, role, gender, pay, ability, key, restaurantName= data
         list.append(key)
-        employee = Employee(firstname, lastname, age, role, gender, pay, ability, decrypt(key))
+        employee = Employee(firstname, lastname, age, role, gender, pay, ability, decrypt(key), restaurantName)
         dict.setdefault(key, []).append(employee)
     conn.close()

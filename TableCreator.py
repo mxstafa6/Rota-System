@@ -45,7 +45,6 @@ class RotaApp:
                 tk.Label(self.root, text=role, width=self.max_role_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
                 self.row_index += 1
                 for employee in employees:
-                    print(employee.key)
                     tk.Label(self.root, text=employee.name, width=self.max_name_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
                     for j in range(len(self.days)):
                         entry = tk.Entry(self.root, width=self.max_name_length, relief=tk.SOLID)
