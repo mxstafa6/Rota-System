@@ -21,7 +21,8 @@ def Serialize(dict,list,restaurantName):
     # Organize employee data as objects, stored in the dictionary by key
     for data in employees_data:
         firstname, lastname, age, role, gender, pay, ability, key= data
+        key=decrypt(key)
         list.append(key)
-        employee = Employee(firstname, lastname, age, role, gender, pay, ability, decrypt(key))
+        employee = Employee(firstname, lastname, age, role, gender, pay, ability, key)
         dict.setdefault(key, []).append(employee)
     conn.close()

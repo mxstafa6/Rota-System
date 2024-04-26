@@ -1,5 +1,4 @@
 import tkinter as tk
-import sqlite3
 from ObjectCreation import Serialize
 from EmployeeCreation import roles
 
