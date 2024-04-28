@@ -181,11 +181,13 @@ class EnterWorkData:
 
         # Create a table to store restaurant data if it doesn't exist already
         cursor.execute('''CREATE TABLE IF NOT EXISTS restaurant_data
-                        (restaurantName TEXT, restaurantBudget FLOAT)''')
+                        (restaurantName TEXT, restaurantBudget FLOAT, roles STR)''')
+        
+        roles_str = ', '.join(self.roles)
 
-        # Insert restaurant name and budget into the restaurant_data table
-        cursor.execute('''INSERT INTO restaurant_data (restaurantName, restaurantBudget) 
-                        VALUES (?, ?)''', (self.restaurantName_entry.get(), self.budget))
+        # Insert restaurant name,budget and role into the restaurant_data table
+        cursor.execute('''INSERT INTO restaurant_data (restaurantName, restaurantBudget, roles) 
+                        VALUES (?, ?, ?)''', (self.restaurantName_entry.get(), self.budget, roles_str))
 
         # Create a new table to store opening and closing times for each day
         cursor.execute('''CREATE TABLE IF NOT EXISTS days_data

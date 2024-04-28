@@ -1,21 +1,21 @@
 import sqlite3
+import math
+from datetime import datetime, timedelta
 from ObjectCreation import Serialize
 
-days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-
 class Rota:
-
     def __init__(self, restaurantName):
+        self.days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         self.restaurantname = restaurantName
-        self.check_off_days(days)
-        self.covers = {}
-        for day in days:
-            self.covers[day] = None
+        self.check_off_days()
+        self.shifts = {}
+        for day in self.days:
+            self.shifts[day] = None
         self.employees = {}
         self.keys = []
-        Serialize(self.employees, self.keys, restaurantName)
+        self.get_shift()
 
-    def check_off_days(self, days):
+    def check_off_days(self):
         # Connect to the SQLite database
         conn = sqlite3.connect('data.db')
         cursor = conn.cursor()
@@ -30,7 +30,7 @@ class Rota:
 
         # Iterate over the columns and remove days marked as off
         for column in columns:
-            # Skip the restaurantName column
+            # Skip the restaurantName column``
             if column == 'restaurantName':
                 continue
             # If the day is off, remove it from the list of days
@@ -40,10 +40,52 @@ class Rota:
             result = cursor.fetchone()
             # If the result is not None, the day is off
             if result is not None:
-                days.remove(column)
+                self.days.remove(column)
 
         # Close the cursor and connection
         cursor.close()
         conn.close()
 
-app = Rota('1a')
+    def get_shift(self):
+        # Connect to the SQLite database
+        conn = sqlite3.connect('data.db')
+        cursor = conn.cursor()
+        
+        for day in self.days:
+            cursor.execute(f"SELECT {day} FROM days_data WHERE restaurantName = ?",
+                        (self.restaurantname,))
+            shift = cursor.fetchone()[0]
+            
+            # Split the shift into open and close time
+            open_time, _, close_time = shift.partition('-')
+            
+            # Parse the time strings into datetime objects
+            open_datetime = datetime.strptime(open_time.strip(), "%H:%M")
+            close_datetime = datetime.strptime(close_time.strip(), "%H:%M")
+            
+            # Calculate the difference between open and close time
+            if close_datetime < open_datetime:  # Adjust for closing time before opening time
+                close_datetime += timedelta(days=1)  # Increment day for closing time
+                
+            time_difference = close_datetime - open_datetime
+            time_difference_minutes = abs(time_difference.total_seconds() // 60)
+            shifts_needed = math.ceil(time_difference_minutes / 360)
+
+            if time_difference_minutes > 360:
+                shifts = []
+                for i in range(int(shifts_needed)):
+                    # Calculate shift start and end times
+                    shift_start = open_datetime + timedelta(hours=6 * i)
+                    shift_end = min(open_datetime + timedelta(hours=6 * (i + 1)), close_datetime)
+                    shift_str = f"{shift_start:%H:%M}-{shift_end:%H:%M}"  # Format as XX:XX-XX:XX
+                    shifts.append(shift_str)
+
+                # Store shifts in the dictionary
+                self.shifts[day] = shifts
+            else:
+                # Store single shift in the dictionary
+                shift_str = f"{open_datetime:%H:%M}-{close_datetime:%H:%M}"  # Format as XX:XX-XX:XX
+                self.shifts[day] = [shift_str]
+
+app = Rota('Marlos')
+print(app.shifts)

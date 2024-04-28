@@ -4,8 +4,6 @@ from tkinter import ttk
 from tkinter import messagebox
 from Encryption import encrypt
 
-roles=["Waiter", "Runner", "Manager", "Floor Manager", "Bartender", "Barback", "Bar Manager"]
-
 class EnterEmployees:
     def __init__(self, window):
         # Initialize the EnterEmployees class with a Tkinter window
@@ -38,7 +36,7 @@ class EnterEmployees:
         conn.close()
 
         # Labels and entry widgets for user information
-        labels = ["First Name", "Last Name", "User Key", "Gender", "Age", "Role", "Hourly Pay", "Ability Level", "Restaurant"]
+        labels = ["First Name", "Last Name", "User Key", "Gender", "Age", "Hourly Pay", "Ability Level", "Restaurant"]
         self.entries = {}  # Dictionary to hold the entry widgets
         
         # Loop through labels and create corresponding entry widgets
@@ -53,8 +51,6 @@ class EnterEmployees:
                 entry = ttk.Combobox(self.user_info_frame, values=["Male", "Female", "Other"],state="readonly")
             elif label_text == "Age":
                 entry = tkinter.Spinbox(self.user_info_frame, from_=16, to=110,state="readonly")
-            elif label_text == "Role":
-                entry = ttk.Combobox(self.user_info_frame, values=roles,state="readonly")
             elif label_text == "Ability Level":
                 entry = tkinter.Spinbox(self.user_info_frame, from_=1, to=3,state="readonly")
             else:
@@ -62,45 +58,50 @@ class EnterEmployees:
 
             entry.grid(row=i, column=1, padx=10, pady=5)
             self.entries[label_text] = entry  # Store entry widget in the dictionary
+    
+    def enter_roles(self, selected_restaurant):
+        # Create a new window for entering roles
+        roles_window = tkinter.Toplevel()
+        roles_window.title("Select Role")
 
-    def create_button(self):
-        # Create button to enter data
-        self.button = tkinter.Button(self.frame, text="Enter data", command=self.enter_data)
-        self.button.grid(row=1, column=0, sticky="news", padx=20, pady=10)
+        # Fetch roles associated with the selected restaurant from the database
+        conn = sqlite3.connect('data.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT roles FROM restaurant_data WHERE restaurantName=?", (selected_restaurant,))
+        roles = cursor.fetchone()[0].split(", ")  # Assuming roles are stored as a comma-separated string
+        conn.close()
 
-    def enter_data(self):
+        # Create a combobox for selecting roles
+        role_entry = ttk.Combobox(roles_window, values=roles, state="readonly")
+        role_entry.grid(row=0, column=0, padx=30, pady=5)
+
+        # Enter Data button
+        enterData = ttk.Button(roles_window, text='Enter Data', command=lambda: self.enter_data(role_entry.get()))  # Pass the selected role to enter_data
+        enterData.grid(row=1, column=0, padx=30, pady=5)
+
+    def check(self):
         # Get data from entry widgets
-        data = {key: entry.get() for key, entry in self.entries.items()}
+        self.data = {key: entry.get() for key, entry in self.entries.items()}
         
         # Check if all fields are filled
-        if all(data.values()):
+        if all(self.data.values()):
             # Check if User Key is a 4-digit number
-            if data["User Key"].isdigit() and len(data["User Key"]) == 4:
-                key = '{:04d}'.format(int(data["User Key"]))
+            if self.data["User Key"].isdigit() and len(self.data["User Key"]) == 4:
+                self.key = '{:04d}'.format(int(self.data["User Key"]))
+                self.hourly_pay = self.data["Hourly Pay"]
 
                 # Check if Hourly Pay can be converted to a float
                 try:
-                    hourly_pay = float(data['Hourly Pay'])
+                    self.hourly_pay = float(self.hourly_pay)
                 except ValueError:
                     messagebox.showerror('Error', 'Hourly Pay must be a valid number.')
                     return
 
                 # Check if the key is available
-                if not self.check_key_availability(key):
-                    # Insert data into SQLite database
-                    conn = sqlite3.connect('data.db')
-                    cursor = conn.cursor()
-                    cursor.execute('''CREATE TABLE IF NOT EXISTS Employee_Data 
-                                    (key TEXT, firstname TEXT, lastname TEXT, gender TEXT, age INT, role TEXT, pay FLOAT, ability INT, restaurantName TEXT)''')
-
-                    cursor.execute('''INSERT INTO Employee_Data (key, firstname, lastname, gender, age, role, pay, ability, restaurantName) 
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (encrypt(key), data["First Name"], data["Last Name"],
-                                                                data["Gender"], data["Age"], data["Role"], round(hourly_pay, 2), data['Ability Level'], data['Restaurant']))
-                    conn.commit()
-                    conn.close()
-
-                    # Clear entry fields after successful entry
-                    self.clear_entry_fields()
+                if not self.check_key_availability(self.key):
+                    # Pass the selected restaurant to the enter_roles method
+                    selected_restaurant = self.entries["Restaurant"].get()
+                    self.enter_roles(selected_restaurant)
                 else:
                     # Show error message if key is already in use
                     messagebox.showerror('Error', 'This key is already in use.')
@@ -110,6 +111,33 @@ class EnterEmployees:
         else:
             # Show error message if not all fields are filled
             messagebox.showerror('Error', 'You have to input all fields.')
+
+
+
+    def create_button(self):
+        # Create button to enter data
+        self.button = tkinter.Button(self.frame, text="Okay", command=self.check)
+        self.button.grid(row=1, column=0, sticky="news", padx=20, pady=10)
+
+    def enter_data(self, selected_role):
+        # Add the selected role to self.entries
+        self.entries['Role'] = selected_role
+
+        # Connect to the database and insert employee data
+        conn = sqlite3.connect('data.db')
+        cursor = conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS Employee_Data 
+                        (key TEXT, firstname TEXT, lastname TEXT, gender TEXT, age INT, role TEXT, pay FLOAT, ability INT, restaurantName TEXT)''')
+
+        cursor.execute('''INSERT INTO Employee_Data (key, firstname, lastname, gender, age, role, pay, ability, restaurantName) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (encrypt(self.key), self.data["First Name"], self.data["Last Name"],
+                                                    self.data["Gender"], self.data["Age"], self.entries["Role"], round(self.hourly_pay, 2), self.data['Ability Level'], self.data['Restaurant']))
+        conn.commit()
+        conn.close()
+        
+        # Destroy all windows
+        self.window.destroy()
+        self.window.quit()
 
     def check_key_availability(self, key):
         # Check if the key is already in use
