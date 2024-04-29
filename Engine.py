@@ -9,11 +9,17 @@ class Rota:
         self.restaurantname = restaurantName
         self.check_off_days()
         self.shifts = {}
+        self.covers = {}
         for day in self.days:
             self.shifts[day] = None
-        self.employees = {}
-        self.keys = []
+            self.covers[day] = 0
         self.get_shift()
+
+    #def get_covers(self):
+        #try 
+
+
+
 
     def check_off_days(self):
         # Connect to the SQLite database
@@ -69,25 +75,39 @@ class Rota:
                 
             time_difference = close_datetime - open_datetime
             time_difference_minutes = abs(time_difference.total_seconds() // 60)
-            shifts_needed = math.ceil(time_difference_minutes / 360)
+            
+            # Calculate the number of shifts needed
+            num_shifts = math.ceil(time_difference_minutes / 360)
+            
+            # Calculate the duration of each shift
+            shift_duration = time_difference_minutes / num_shifts
+            
+            shifts = []
+            for i in range(num_shifts):
+                # Calculate shift start and end times
+                shift_start = open_datetime + timedelta(minutes=shift_duration * i)
+                shift_end = shift_start + timedelta(minutes=shift_duration)
+                shift_str = f"{shift_start:%H:%M}-{shift_end:%H:%M}"  # Format as XX:XX-XX:XX
+                shifts.append(shift_str)
+            
+            # Store shifts in the dictionary
+            self.shifts[day] = shifts
+        #self.assignShifts()
 
-            if time_difference_minutes > 360:
-                shifts = []
-                for i in range(int(shifts_needed)):
-                    # Calculate shift start and end times
-                    shift_start = open_datetime + timedelta(hours=6 * i)
-                    shift_end = min(open_datetime + timedelta(hours=6 * (i + 1)), close_datetime)
-                    shift_str = f"{shift_start:%H:%M}-{shift_end:%H:%M}"  # Format as XX:XX-XX:XX
-                    shifts.append(shift_str)
-
-                # Store shifts in the dictionary
-                self.shifts[day] = shifts
-            else:
-                # Store single shift in the dictionary
-                shift_str = f"{open_datetime:%H:%M}-{close_datetime:%H:%M}"  # Format as XX:XX-XX:XX
-                self.shifts[day] = [shift_str]
-
-        
+""" def assignShifts(self):
+        self.employees={}
+        self.keys=[]
+        self.roles=[]
+        Serialize(self.employees, self.keys, self.restaurantname)
+        for day in self.days():
+            waitersNeeded = 1
+            bartendersNeeded = 1
+            managersNeeded = 1
+            runnersNeeded = 1
+            barbacksNeeded = 1
+            math.ceil(self.covers[day] / 25)
+"""   
 
 app = Rota('Aura')
-print(app.shifts)
+x=app.shifts['Monday']
+print(x)

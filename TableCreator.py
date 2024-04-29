@@ -1,21 +1,13 @@
 import tkinter as tk
-import sqlite3
 from ObjectCreation import Serialize
 
 class RotaApp:
     def __init__(self, root, restaurant):
         # Initialize RotaApp object
+        self.roles=['Manager', 'Waiter', 'Runner', 'Bartender', 'Barback']                    
         self.restaurant = restaurant
         self.employees={}
         self.keys=[]
-
-        # Fetch roles associated with the selected restaurant from the database
-        conn = sqlite3.connect('data.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT roles FROM restaurant_data WHERE restaurantName=?", (self.restaurant,))
-        self.roles = cursor.fetchone()[0].split(", ")  # Assuming roles are stored as a comma-separated string
-        conn.close()
-        print(self.roles)
 
         Serialize(self.employees,self.keys,self.restaurant)
         
@@ -65,5 +57,5 @@ class RotaApp:
 if __name__ == "__main__":
     # Create Tkinter root window and start the event loop
     root = tk.Tk()
-    app = RotaApp(root, 'Marlos')
+    app = RotaApp(root, 'Aura')
     root.mainloop()
