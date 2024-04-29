@@ -215,6 +215,10 @@ class EnterWorkData:
         # Commit changes and close connection
         conn.commit()
         conn.close()
+        
+        # Destroy all windows
+        self.window.destroy()
+        self.window.quit()
 
 # Main code
 if __name__ == "__main__":

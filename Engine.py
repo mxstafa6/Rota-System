@@ -87,5 +87,7 @@ class Rota:
                 shift_str = f"{open_datetime:%H:%M}-{close_datetime:%H:%M}"  # Format as XX:XX-XX:XX
                 self.shifts[day] = [shift_str]
 
-app = Rota('Marlos')
+        
+
+app = Rota('Aura')
 print(app.shifts)
