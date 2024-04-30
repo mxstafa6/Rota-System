@@ -109,5 +109,5 @@ class Rota:
 """   
 
 app = Rota('Aura')
-x=app.shifts['Monday']
+x=app.shifts['Tuesday']
 print(x)
