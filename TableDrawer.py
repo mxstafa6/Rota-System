@@ -28,8 +28,8 @@ class RotaApp:
 
     def calculate_max(self):
         # Determine maximum name and role lengths
-        self.max_name_length = max(len(emp.name) for emp_list in self.employees.values() for emp in emp_list)
-        self.max_role_length = max(len(emp.role) for emp_list in self.employees.values() for emp in emp_list)
+        self.max_name_length = max(len(self.employees[emp_id][0].name) for emp_id in self.employees.keys())
+        self.max_role_length = max(len(self.employees[emp_id][0].role) for emp_id in self.employees.keys())
 
     def day_labels(self):
         # Create labels for days
@@ -39,9 +39,9 @@ class RotaApp:
     def populate_table(self, employees_shifts):
         # Group employees by role
         employees_by_role = {role: [] for role in self.roles}
-        for employees in self.employees.values():
-            for employee in employees:
-                employees_by_role[employee.role].append(employee)
+        for emp_id in self.employees.keys():
+            employee = self.employees[emp_id][0]
+            employees_by_role[employee.role].append(employee)
 
         # Populate timetable with employee data grouped by role
         for role, employees in employees_by_role.items():
@@ -51,7 +51,7 @@ class RotaApp:
                 for employee in employees:
                     tk.Label(self.root, text=employee.name, width=self.max_name_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
                     for j, day in enumerate(self.days):
-                        shift_info = employees_shifts[day].get(employee.name)
+                        shift_info = employees_shifts[day].get(employee.key)
                         if shift_info:
                             shift_found = False
                             for shift_tuple in shift_info:
@@ -75,7 +75,7 @@ class RotaApp:
         # Iterate through each day
         for day, shifts_info in employees_shifts.items():
             # Iterate through each employee's shifts
-            for employee_name, shifts in shifts_info.items():
+            for employee_id, shifts in shifts_info.items():
                 combined_shifts = []
                 current_shift_start = None
                 current_shift_end = None
@@ -101,7 +101,7 @@ class RotaApp:
                 combined_shifts.append((day, f"{current_shift_start}-{current_shift_end}", shift[2]))
 
                 # Update employee's shifts with the combined shifts
-                employees_shifts[day][employee_name] = combined_shifts
+                employees_shifts[day][employee_id] = combined_shifts
 
         return employees_shifts
 
@@ -112,9 +112,9 @@ class RotaApp:
         assignedShifts = {day: {shift: {role: [] for role in self.roles} for shift in self.shifts[day]} for day in self.days}
         employees_shifts = {day: {} for day in self.days}
         employees_by_role = {role: [] for role in self.roles}
-        for employees in self.employees.values():
-            for employee in employees:
-                employees_by_role[employee.role].append(employee)
+        for emp_id in self.employees.keys():
+            employee = self.employees[emp_id][0]
+            employees_by_role[employee.role].append(employee)
 
         # Calculate the total shift points needed for each role on each day
         total_shift_points = {day: {role: 0 for role in self.roles} for day in self.days}
@@ -150,9 +150,55 @@ class RotaApp:
                         for _ in range(num_shifts):
                             assigned_shift = todayShifts[shift_index]
                             assignedShifts[day][assigned_shift][role].append(employee)
-                            if employee.name not in employees_shifts[day]:
-                                employees_shifts[day][employee.name] = []
-                            employees_shifts[day][employee.name].append((day, assigned_shift, role))
+                            if employee.key not in employees_shifts[day]:
+                                employees_shifts[day][employee.key] = []
+                            employees_shifts[day][employee.key].append((day, assigned_shift, role))
                             shift_index += 1
         employees_shifts = self.combine_shifts(employees_shifts)
+        self.calculate_budget(employees_shifts)
         return employees_shifts
+    def calculate_budget(self, employees_shifts):
+        total_budget = 0
+        employee_pay_weekly = {}  # Dictionary to store weekly pay for each employee
+        
+        for day, shifts_info in employees_shifts.items():
+            for employee_id, shifts in shifts_info.items():
+                total_hours_worked = 0
+                
+                for shift in shifts:
+                    shift_start, shift_end = shift[1].split('-')
+                    start_hour, start_minute = map(int, shift_start.split(':'))
+                    end_hour, end_minute = map(int, shift_end.split(':'))
+                    
+                    if end_hour == 0:  # Handle shifts ending at midnight
+                        end_hour = 24
+                    
+                    if start_hour > end_hour:  # Adjust for shifts starting before midnight and ending after midnight
+                        total_hours_worked += (24 - start_hour) + end_hour + (end_minute - start_minute) / 60
+                    else:
+                        total_hours_worked += end_hour - start_hour + (end_minute - start_minute) / 60
+                
+                if total_hours_worked < 0:
+                    print(f"Error: Negative hours worked for employee {employee_id} on {day}")
+                    continue  # Skip calculation for this employee
+                
+                employee = self.employees.get(employee_id)
+                if employee:
+                    employee = employee[0]
+                    if employee.pay < 0:
+                        print(f"Error: Negative pay rate for employee {employee_id}")
+                        continue  # Skip calculation for this employee
+                    
+                    weekly_pay = total_hours_worked * employee.pay
+                    total_budget += weekly_pay
+                    employee_pay_weekly[employee.name] = employee_pay_weekly.get(employee.name, 0) + weekly_pay
+                else:
+                    print(f"Error: Employee {employee_id} not found")
+        
+        if total_budget < 0:
+            print("Warning: Total budget is negative.")
+        
+        print("Total Budget:", total_budget)
+        print("Employee Pay Weekly:")
+        for employee_name, weekly_pay in employee_pay_weekly.items():
+            print(f"{employee_name}: ${weekly_pay:.2f}")

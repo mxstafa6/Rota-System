@@ -46,23 +46,26 @@ class EnterWorkData:
                 self.budget_entry = tkinter.Entry(self.user_info_frame)
                 self.budget_entry.grid(row=1, column=i, padx=30, pady=5)
             elif label_text == "Days Open":
-                self.selected_days = []
+                self.selected_days = []  # Ensure selected_days is empty
 
                 # Create Checkbuttons for each day
                 for j, day in enumerate(days):
-                    var = tkinter.BooleanVar()
+                    var = tkinter.BooleanVar(value=False)  # Set initial value to False
                     checkbox = ttk.Checkbutton(self.user_info_frame, text=day, variable=var)
                     checkbox.grid(sticky="w")
                     # Lambda function with default argument to capture the current value of 'day'
                     checkbox.config(command=lambda d=day, v=var: self.toggle_day(d, v, self.selected_days))
-
                 # Button to validate and proceed
                 ok_button = ttk.Button(self.user_info_frame, text="Ok", command=self.validate)
                 ok_button.grid(row=len(days) + 1, column=0, columnspan=len(labels), pady=(5, 0), sticky="we")
 
     def validate(self):
         # Validate user input
-        restaurant_name = self.restaurantName_entry.get()  # Store the restaurant name as a string
+        restaurant_name = self.restaurantName_entry.get().strip()  # Store the restaurant name as a string
+        if not restaurant_name:
+            messagebox.showerror("Error", "Restaurant name cannot be empty.")
+            return
+
         try:
             self.budget = float(self.budget_entry.get())  # Convert budget to float
             try:
@@ -149,8 +152,35 @@ class EnterWorkData:
             closing_hours_spinbox.config(command=store_hours)
             closing_hours_spinbox_minutes.bind("<<ComboboxSelected>>", store_hours)
 
+        # Function to check opening and closing times
+        def check_times():
+            errors = []
+            for day in self.selected_days:
+                opening_hour = self.opening_hours[day]
+                closing_hour = self.closing_hours[day]
+
+                if opening_hour == "OFF" or closing_hour == "OFF":
+                    # If either opening or closing hour is "OFF", consider it as left untouched
+                    errors.append(f"Please enter opening and closing times for {day}.")
+                else:
+                    opening_hour_parts = opening_hour.split(":")
+                    opening_hour_int = int(opening_hour_parts[0])
+                    opening_minutes_int = int(opening_hour_parts[1])
+
+                    closing_hour_parts = closing_hour.split(":")
+                    closing_hour_int = int(closing_hour_parts[0])
+                    closing_minutes_int = int(closing_hour_parts[1])
+
+                    # Check if opening time is before closing time
+                    if closing_hour_int < opening_hour_int or (closing_hour_int == opening_hour_int and closing_minutes_int <= opening_minutes_int):
+                        errors.append(f"Opening time must be before closing time for {day}.")
+
+            if errors:
+                messagebox.showerror("Error", "\n".join(errors))
+            else:
+                self.enter_restaurantdata()
         # Button to proceed to enter restaurant data
-        ok_button = ttk.Button(hours_window, text="Ok", command=self.enter_restaurantdata)
+        ok_button = ttk.Button(hours_window, text="Ok", command=check_times)
         ok_button.grid(row=row_counter, column=0, columnspan=3, pady=(5, 10), sticky="we")
 
     def enter_restaurantdata(self):
@@ -196,9 +226,3 @@ class EnterWorkData:
         # Destroy all windows
         self.window.destroy()
         self.window.quit()
-
-# Main code
-if __name__ == "__main__":
-    window = tkinter.Tk()
-    app = EnterWorkData(window)
-    window.mainloop()
