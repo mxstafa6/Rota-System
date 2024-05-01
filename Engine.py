@@ -1,9 +1,11 @@
 import sqlite3
+import tkinter as tk
 import math
 from datetime import datetime, timedelta
 from ObjectCreation import Serialize
+from TableDrawer import RotaApp
 
-class Rota:
+class RestaurantInformationRetriever:
     def __init__(self, restaurantName):
         self.days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         self.restaurantname = restaurantName
@@ -14,12 +16,6 @@ class Rota:
             self.shifts[day] = None
             self.covers[day] = 0
         self.get_shift()
-
-    #def get_covers(self):
-        #try 
-
-
-
 
     def check_off_days(self):
         # Connect to the SQLite database
@@ -92,22 +88,8 @@ class Rota:
             
             # Store shifts in the dictionary
             self.shifts[day] = shifts
-        #self.assignShifts()
 
-""" def assignShifts(self):
-        self.employees={}
-        self.keys=[]
-        self.roles=[]
-        Serialize(self.employees, self.keys, self.restaurantname)
-        for day in self.days():
-            waitersNeeded = 1
-            bartendersNeeded = 1
-            managersNeeded = 1
-            runnersNeeded = 1
-            barbacksNeeded = 1
-            math.ceil(self.covers[day] / 25)
-"""   
-
-app = Rota('Aura')
-x=app.shifts['Tuesday']
-print(x)
+app = RestaurantInformationRetriever('Aura')
+root = tk.Tk()
+app = RotaApp(root, 'Aura', app.shifts, app.days)
+root.mainloop()
