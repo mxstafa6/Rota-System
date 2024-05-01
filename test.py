@@ -9,7 +9,6 @@ Serialize(employees, keys, 'Aura')
 
 covers = {}
 assignedShifts = {}
-# Assuming the employees dictionary and other necessary variables are initialized properly
 
 roles = ['Manager', 'Waiter', 'Runner', 'Bartender', 'Barback']
 days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -58,29 +57,26 @@ for day in days:
         employeesNeeded['Bartender'] = 1
         employeesNeeded['Waiter'] = 1
 
-    # Assign shifts to employees
+    # Assign shifts to employees and handle consecutive shifts
     assignedShifts[day] = {shift: {role: [] for role in roles} for shift in shifts}
-    for shift in shifts:
+    for i, shift in enumerate(shifts):
         for role in roles:
+            random.shuffle(employees_by_role[role])
             for _ in range(employeesNeeded[role]):
-                if employees_by_role[role]:
+                if employees_by_role[role]:                   
                     employee = employees_by_role[role].pop(0)
                     assignedShifts[day][shift][role].append(employee)
                     if employee.name not in employees_shifts[day]:
                         employees_shifts[day][employee.name] = []
                     employees_shifts[day][employee.name].append((day, shift, role))
+                    
+                    # If there is no subsequent role to cover a shift, assign it to the previous employee who took a shift on that day
+                    if i < len(shifts) - 1:
+                        next_shift = shifts[i + 1]
+                        if len(assignedShifts[day][next_shift][role]) == 0:
+                            assignedShifts[day][next_shift][role].append(employee)
+                            employees_shifts[day][employee.name].append((day, next_shift, role))
 
-    # If there is no subsequent role to cover a shift, assign it to the previous employee who took a shift on that day
-    for i, shift in enumerate(shifts[:-1]):
-        for role in roles:
-            if len(assignedShifts[day][shift][role]) > 0:
-                for next_shift in shifts[i + 1:]:
-                    if len(assignedShifts[day][next_shift][role]) == 0:
-                        employee = assignedShifts[day][shift][role][0]
-                        assignedShifts[day][next_shift][role].append(employee)
-                        if employee.name not in employees_shifts[day]:
-                            employees_shifts[day][employee.name] = []
-                        employees_shifts[day][employee.name].append((day, next_shift, role))
 
 # Combine consecutive shifts on the same day for each employee
 for day, shifts_info in employees_shifts.items():
@@ -89,13 +85,13 @@ for day, shifts_info in employees_shifts.items():
         current_shift = None
         for assigned_day, assigned_shift, assigned_role in shifts_assigned:
             if current_shift is None:
-                current_shift = {'start_time': assigned_shift.split('-')[0], 'end_time': assigned_shift.split('-')[1]}
+                current_shift = {'start_time': assigned_shift.split('-')[0], 'end_time': assigned_shift.split('-')[1], 'role': assigned_role}
             else:
                 if assigned_shift.split('-')[0] == current_shift['end_time']:
                     current_shift['end_time'] = assigned_shift.split('-')[1]
                 else:
                     combined_shifts.append(current_shift)
-                    current_shift = {'start_time': assigned_shift.split('-')[0], 'end_time': assigned_shift.split('-')[1]}
+                    current_shift = {'start_time': assigned_shift.split('-')[0], 'end_time': assigned_shift.split('-')[1], 'role': assigned_role}
         combined_shifts.append(current_shift)
         shifts_info[employee] = combined_shifts
 
@@ -103,6 +99,6 @@ for day, shifts_info in employees_shifts.items():
 for day, shifts_info in employees_shifts.items():
     print(f"For {day}:")
     for employee, combined_shifts in shifts_info.items():
-        print(f"Employee: {employee}")
+        print(f"Employee: {employee} ({combined_shifts[0]['role']})")
         for combined_shift in combined_shifts:
             print(f"\tShift(s): {combined_shift['start_time']}-{combined_shift['end_time']}")
