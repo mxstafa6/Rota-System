@@ -1,6 +1,10 @@
 import tkinter as tk
+import datetime
 from ObjectCreation import Serialize
+import sqlite3
 import math
+import io
+from PIL import ImageGrab
 import random
 
 class RotaApp:
@@ -19,12 +23,19 @@ class RotaApp:
 
         self.row_index = 1  # Initialize row index
 
+        # Connect to the database
+        self.conn = sqlite3.connect('data.db')
+        self.cursor = self.conn.cursor()
+        
         # Create the timetable GUI
         self.calculate_max()
         self.day_labels()
-        employees_shifts = self.generate_shift_schedules()  # Store generated shift schedules
-        self.populate_table(employees_shifts)  # Pass shift schedules to populate_table
+        self.employees_shifts = self.generate_shift_schedules()  # Store generated shift schedules
+        self.populate_table(self.employees_shifts)  # Pass shift schedules to populate_table
 
+        # Add Save Schedule button
+        save_button = tk.Button(root, text="Save Schedule", command=self.save_schedule)
+        save_button.grid(row=self.row_index, columnspan=len(self.days) + 1)
 
     def calculate_max(self):
         # Determine maximum name and role lengths
@@ -155,15 +166,57 @@ class RotaApp:
                             employees_shifts[day][employee.key].append((day, assigned_shift, role))
                             shift_index += 1
         employees_shifts = self.combine_shifts(employees_shifts)
-        self.calculate_budget(employees_shifts)
         return employees_shifts
-    def calculate_budget(self, employees_shifts):
-        total_budget = 0
-        employee_pay_weekly = {}  # Dictionary to store weekly pay for each employee
+    
+    def save_schedule(self):
+        # Get the dimensions of the GUI window
+        window_width = self.root.winfo_width()
+        window_height = self.root.winfo_height()
+
+        # Get the position of the GUI window relative to the screen
+        window_x = self.root.winfo_rootx()
+        window_y = self.root.winfo_rooty()
+
+        # Calculate the bounding box for the screenshot
+        bbox = (window_x, window_y, window_x + window_width, window_y + window_height - 30)
+
+        # Grab the screenshot of the entire GUI window
+        screenshot = ImageGrab.grab(bbox=bbox)
+
+        # Convert image to binary data
+        img_byte_arr = io.BytesIO()
+        screenshot.save(img_byte_arr, format='PNG')
+        img_byte_arr = img_byte_arr.getvalue()
+
+        # Get the first day of the week
+        today = datetime.date.today()
+        first_day_of_week = today - datetime.timedelta(days=today.weekday())
+
+        # Convert first day of the week to string in the format "dd/mm/yyyy"
+        first_day_of_week_str = first_day_of_week.strftime('%d-%m-%Y')
+
+
+        # Update 'pastRota' column with the rota PNG
+        self.cursor.execute(f"UPDATE previous_information SET pastRota = ? WHERE restaurantName = ?", (img_byte_arr, self.restaurant))
+
+        # Save wages text as a text file
+        wages_text = self.calculate_wages_text(employees_shifts=self.employees_shifts)
+
+        # Update 'pastData' column with the wage text file path
+        self.cursor.execute(f"UPDATE previous_information SET pastData = ? WHERE restaurantName = ?", (wages_text, self.restaurant))
+
+        self.conn.commit()
+
+        print("Schedule saved to the database.")
+    def calculate_wages_text(self, employees_shifts):
+        wages_text = "Weekly Wages:\n"
+        total_wage_bill = 0
         
         for day, shifts_info in employees_shifts.items():
             for employee_id, shifts in shifts_info.items():
                 total_hours_worked = 0
+                employee_name = self.employees[employee_id][0].name
+                hourly_pay_rate = self.employees[employee_id][0].pay
                 
                 for shift in shifts:
                     shift_start, shift_end = shift[1].split('-')
@@ -182,23 +235,10 @@ class RotaApp:
                     print(f"Error: Negative hours worked for employee {employee_id} on {day}")
                     continue  # Skip calculation for this employee
                 
-                employee = self.employees.get(employee_id)
-                if employee:
-                    employee = employee[0]
-                    if employee.pay < 0:
-                        print(f"Error: Negative pay rate for employee {employee_id}")
-                        continue  # Skip calculation for this employee
-                    
-                    weekly_pay = total_hours_worked * employee.pay
-                    total_budget += weekly_pay
-                    employee_pay_weekly[employee.name] = employee_pay_weekly.get(employee.name, 0) + weekly_pay
-                else:
-                    print(f"Error: Employee {employee_id} not found")
+                weekly_wage = total_hours_worked * hourly_pay_rate
+                wages_text += f"{employee_name}: ${weekly_wage:.2f}\n"
+                total_wage_bill += weekly_wage
         
-        if total_budget < 0:
-            print("Warning: Total budget is negative.")
+        wages_text += f"\nTotal Wage Bill: ${total_wage_bill:.2f}"
         
-        print("Total Budget:", total_budget)
-        print("Employee Pay Weekly:")
-        for employee_name, weekly_pay in employee_pay_weekly.items():
-            print(f"{employee_name}: ${weekly_pay:.2f}")
+        return wages_text

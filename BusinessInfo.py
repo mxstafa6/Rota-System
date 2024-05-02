@@ -188,6 +188,10 @@ class EnterWorkData:
         conn = sqlite3.connect('data.db')
         cursor = conn.cursor()
 
+        cursor.execute(''' CREATE TABLE IF NOT EXISTS previous_information
+                       (restaurantName TEXT, pastRota BLOB, pastData TEXT)''')
+        cursor.execute('''INSERT INTO previous_information (restaurantName) 
+                        VALUES (?)''', (self.restaurantName_entry.get(),))
         # Create a table to store restaurant data if it doesn't exist already
         cursor.execute('''CREATE TABLE IF NOT EXISTS restaurant_data
                         (restaurantName TEXT, restaurantBudget FLOAT)''')
