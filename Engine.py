@@ -11,10 +11,8 @@ class RestaurantInformationRetriever:
         self.restaurantname = restaurantName
         self.check_off_days()
         self.shifts = {}
-        self.covers = {}
         for day in self.days:
             self.shifts[day] = None
-            self.covers[day] = 0
         self.get_shift()
 
     def check_off_days(self):
@@ -92,7 +90,6 @@ class RestaurantInformationRetriever:
 def main(restaurantName):
     app = RestaurantInformationRetriever(restaurantName)
     root = tk.Tk()
-    print(app.shifts)
     appx = RotaApp(root, restaurantName, app.shifts, app.days)
     root.mainloop()
 

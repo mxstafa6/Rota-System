@@ -56,6 +56,13 @@ class LoginApp:
         create_restaurant_button = tkinter.Button(main_window, text="Create Restaurant", command=self.create_restaurant)
         create_restaurant_button.pack(pady=10)
 
+        create_rota_button = tkinter.Button(main_window, text="Create Rota", command=self.create_rota)
+        create_rota_button.pack(pady=10)
+
+        view_rota_button = tkinter.Button(main_window, text="View Rota", command=self.view_rota)
+        view_rota_button.pack(pady=10)
+
+
     def view_restaurants(self):
         # Create a new window to display restaurant names and additional options
         view_window = tkinter.Toplevel()
@@ -146,20 +153,26 @@ class LoginApp:
         update_button.grid(row=1, column=0, columnspan=2, pady=(5, 0), sticky="we")
 
     def delete_restaurant_data(self, restaurant_name):
-        restaurant_name=restaurant_name[2:-3]
-        # Delete restaurant data from the days_data table
-        self.cur.execute("DELETE FROM days_data WHERE restaurantName=?", (restaurant_name,))
+    # Define a function to handle deletion after confirmation
+        def confirm_delete():
+            # Delete restaurant data from the days_data table
+            self.cur.execute("DELETE FROM days_data WHERE restaurantName=?", (restaurant_name,))
 
-        # Delete restaurant data from the restaurant_data table
-        self.cur.execute("DELETE FROM restaurant_data WHERE restaurantName=?", (restaurant_name,))
+            # Delete restaurant data from the restaurant_data table
+            self.cur.execute("DELETE FROM restaurant_data WHERE restaurantName=?", (restaurant_name,))
 
-        # Delete employee data associated with the restaurant
-        self.cur.execute("DELETE FROM Employee_data WHERE restaurantName=?", (restaurant_name,))
+            # Delete employee data associated with the restaurant
+            self.cur.execute("DELETE FROM Employee_data WHERE restaurantName=?", (restaurant_name,))
 
-        self.conn.commit()
+            self.conn.commit()
 
-        # Inform the user that the restaurant and related information have been deleted
-        messagebox.showinfo("Success", "Restaurant and related information have been deleted.")
+            # Inform the user that the restaurant and related information have been deleted
+            messagebox.showinfo("Success", "Restaurant and related information have been deleted.")
+
+        # Ask for confirmation before deleting
+        if messagebox.askyesno("Confirmation", "Are you sure you want to delete this restaurant and all related information?"):
+            confirm_delete()
+
 
 
     def update_budget(self):
