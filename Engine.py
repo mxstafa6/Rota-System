@@ -89,7 +89,11 @@ class RestaurantInformationRetriever:
             # Store shifts in the dictionary
             self.shifts[day] = shifts
 
-app = RestaurantInformationRetriever('Aura')
-root = tk.Tk()
-app = RotaApp(root, 'Aura', app.shifts, app.days)
-root.mainloop()
+def main(restaurantName):
+    app = RestaurantInformationRetriever(restaurantName)
+    root = tk.Tk()
+    print(app.shifts)
+    appx = RotaApp(root, restaurantName, app.shifts, app.days)
+    root.mainloop()
+
+main('Aura')

@@ -3,7 +3,7 @@ from tkinter import messagebox
 from Encryption import encrypt
 from BusinessInfo import EnterWorkData
 import sqlite3
-
+masterKey=26012006
 class LoginApp:
     def __init__(self, root):
         self.permissions=0
@@ -57,12 +57,12 @@ class LoginApp:
         create_restaurant_button.pack(pady=10)
 
     def view_restaurants(self):
-        # Create a new window to display restaurant names
+        # Create a new window to display restaurant names and additional options
         view_window = tkinter.Toplevel()
         view_window.title("View Restaurants")
 
         # Query the database to get restaurant names associated with the encrypted user key
-        self.cur.execute("SELECT restaurantName FROM Employee_data WHERE key = ?", (self.user_key_encrypted, ))
+        self.cur.execute("SELECT restaurantName FROM Employee_data WHERE key = ?", (self.user_key_encrypted,))
         restaurant_data = self.cur.fetchall()
 
         # Create a dropdown menu to display restaurant names
@@ -72,13 +72,114 @@ class LoginApp:
         dropdown_menu = tkinter.OptionMenu(view_window, selected_restaurant, *restaurant_data)
         dropdown_menu.pack(padx=10, pady=10)
 
-        def show_selected():
-            messagebox.showinfo("Selected Restaurant", f"You selected: {selected_restaurant.get()}")
+        # Create buttons for additional options
+        edit_restaurant_button = tkinter.Button(view_window, text="Edit Restaurant Budget", command=lambda: self.edit_restaurant(selected_restaurant.get()[2:-3]))
+        edit_restaurant_button.pack(pady=5)
 
-        # Create a button to show the selected restaurant
-        show_button = tkinter.Button(view_window, text="Show", command=show_selected)
-        show_button.pack(pady=10)
+        view_employees_button = tkinter.Button(view_window, text="View Employees", command=lambda: self.view_employees(selected_restaurant.get()[2:-3]))
+        view_employees_button.pack(pady=5)
 
+        delete_restaurant_button = tkinter.Button(view_window, text="Delete Restaurant", command=lambda: self.delete_restaurant_data(selected_restaurant.get()[2:-3]))
+        delete_restaurant_button.pack(pady=5)
+    
+    # Define methods for the additional functionalities
+    def view_employees(self, restaurant_name):
+        # Query the database to get employees associated with the selected restaurant
+        self.cur.execute("SELECT firstname FROM Employee_data WHERE restaurantName = ?", (restaurant_name,))
+        employee_data = self.cur.fetchall()
+
+        # Create a new window to display employee names
+        employees_window = tkinter.Toplevel()
+        employees_window.title("View Employees")
+
+        # Create a label to display employee names
+        employee_label = tkinter.Label(employees_window, text="Employees:")
+        employee_label.pack()
+
+        # Create a listbox to display employee names
+        employee_listbox = tkinter.Listbox(employees_window)
+        for employee in employee_data:
+            employee_listbox.insert(tkinter.END, employee[0])
+        employee_listbox.pack()
+
+    def edit_restaurant(self, restaurantName):
+        # Create a new window to edit the budget
+        edit_window = tkinter.Toplevel()
+        edit_window.title("Edit Business Information")
+
+        # Initialize the main frame
+        self.frame = tkinter.Frame(edit_window)
+        self.frame.pack()
+
+        # Create a label frame for user information
+        self.user_info_frame = tkinter.LabelFrame(self.frame, text="Business Information")
+        self.user_info_frame.grid(row=0, column=0, padx=20, pady=10)
+
+        # Retrieve existing business details from the database
+        conn = sqlite3.connect('data.db')
+        cursor = conn.cursor()
+
+        # Query the database to get the existing budget
+        cursor.execute("SELECT restaurantBudget FROM restaurant_data WHERE restaurantName=?", (restaurantName,))
+        budget_data = cursor.fetchone()
+
+        conn.close()
+
+        # Create a label and entry widget for editing the budget
+        budget_label = tkinter.Label(self.user_info_frame, text="Weekly Budget")
+        budget_label.grid(row=0, column=0, padx=10, pady=5)
+
+        self.budget_entry = tkinter.Entry(self.user_info_frame)
+        self.budget_entry.insert(0, budget_data[0])  # Populate the entry with existing budget
+        self.budget_entry.grid(row=0, column=1, padx=30, pady=5)
+
+        # Button to update the budget
+        update_button = tkinter.Button(self.user_info_frame, text="Update", command=self.update_budget)
+        update_button.grid(row=1, column=0, columnspan=2, pady=(5, 0), sticky="we")
+
+        # Function to destroy the window after displaying the messagebox
+        def destroy_window():
+            edit_window.destroy()
+
+        # Button to update the budget
+        update_button = tkinter.Button(self.user_info_frame, text="Update", command=lambda: [self.update_budget(), destroy_window()])
+        update_button.grid(row=1, column=0, columnspan=2, pady=(5, 0), sticky="we")
+
+    def delete_restaurant_data(self, restaurant_name):
+        restaurant_name=restaurant_name[2:-3]
+        # Delete restaurant data from the days_data table
+        self.cur.execute("DELETE FROM days_data WHERE restaurantName=?", (restaurant_name,))
+
+        # Delete restaurant data from the restaurant_data table
+        self.cur.execute("DELETE FROM restaurant_data WHERE restaurantName=?", (restaurant_name,))
+
+        # Delete employee data associated with the restaurant
+        self.cur.execute("DELETE FROM Employee_data WHERE restaurantName=?", (restaurant_name,))
+
+        self.conn.commit()
+
+        # Inform the user that the restaurant and related information have been deleted
+        messagebox.showinfo("Success", "Restaurant and related information have been deleted.")
+
+
+    def update_budget(self):
+        try:
+            new_budget = float(self.budget_entry.get())  # Get the new budget value from the entry widget
+        except ValueError:
+            messagebox.showerror("Error", "Weekly budget must be a valid number.")
+            return
+
+        # Update the budget in the database
+        conn = sqlite3.connect('data.db')
+        cursor = conn.cursor()
+
+        cursor.execute("UPDATE restaurant_data SET restaurantBudget=?", (new_budget,))
+
+        conn.commit()
+        conn.close()
+
+        # Inform the user that the budget update was successful
+        messagebox.showinfo("Success", "Weekly budget updated successfully.")
 
     def create_restaurant(self):
         # Create a new window to enter business information
