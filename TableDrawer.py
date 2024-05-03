@@ -1,5 +1,5 @@
 import tkinter as tk
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date 
 from ObjectCreation import Serialize
 import sqlite3
 import math
@@ -31,7 +31,7 @@ class RotaApp:
         self.first_day_of_week = today - timedelta(days=today.weekday())
 
         # Add label for the week commencing
-        tk.Label(root, text=f"Week commencing: {self.first_day_of_week.strftime('%d-%m-%Y')}").grid(row=0, columnspan=len(self.days) + 1)
+        tk.Label(root, text=f"Week Commencing: {self.first_day_of_week.strftime('%d-%m-%Y')}").grid(row=0, columnspan=len(self.days) + 1)
         # Create the timetable GUI
         self.calculate_max()
         self.day_labels()
@@ -40,7 +40,11 @@ class RotaApp:
 
         # Add Save Schedule button
         save_button = tk.Button(root, text="Save Schedule", command=self.save_schedule)
-        save_button.grid(row=self.row_index, columnspan=len(self.days) + 1)
+        save_button.grid(row=self.row_index, column=0, pady=10, padx=5)
+
+        # Add View Wages button
+        view_wages_button = tk.Button(root, text="View Wages", command=self.view_wages)
+        view_wages_button.grid(row=self.row_index, column=1, pady=10, padx=5)
 
     def calculate_max(self):
         # Determine maximum name and role lengths
@@ -86,7 +90,23 @@ class RotaApp:
 
                 tk.Label(self.root, text="", width=10).grid(row=self.row_index, column=0)
                 self.row_index += 1
+    def view_wages(self):
+        # Create a new window to display wages
+        wages_window = tk.Toplevel(self.root)
+        wages_window.title("Wages")
 
+        # Retrieve the wage bill text
+        wages_text = self.calculate_wages_text(self.employees_shifts)
+
+        # Create a text widget to display the wage bill
+        text_widget = tk.Text(wages_window, wrap='word', height=20, width=50)
+        text_widget.pack(expand=True, fill='both')
+
+        # Insert the wages text into the text widget
+        text_widget.insert('1.0', wages_text)
+
+        # Make the text widget read-only
+        text_widget.config(state='disabled')
     def combine_shifts(self, employees_shifts):
         # Iterate through each day
         for day, shifts_info in employees_shifts.items():
@@ -183,7 +203,7 @@ class RotaApp:
         window_y = self.root.winfo_rooty()
 
         # Calculate the bounding box for the screenshot
-        bbox = (window_x, window_y, window_x + window_width, window_y + window_height - 30)
+        bbox = (window_x, window_y, window_x + window_width, window_y + window_height - 40)
 
         # Grab the screenshot of the entire GUI window
         screenshot = ImageGrab.grab(bbox=bbox)
@@ -194,8 +214,8 @@ class RotaApp:
         img_byte_arr = img_byte_arr.getvalue()
 
         # Get the first day of the week
-        today = datetime.date.today()
-        first_day_of_week = today - datetime.timedelta(days=today.weekday())
+        today = date.today()
+        first_day_of_week = today - timedelta(days=today.weekday())
 
         # Convert first day of the week to string in the format "dd/mm/yyyy"
         first_day_of_week_str = first_day_of_week.strftime('%d-%m-%Y')

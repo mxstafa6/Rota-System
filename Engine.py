@@ -1,4 +1,5 @@
 import sqlite3
+from tkinter import messagebox
 import tkinter as tk
 import math
 from datetime import datetime, timedelta
@@ -87,10 +88,11 @@ class RestaurantInformationRetriever:
             # Store shifts in the dictionary
             self.shifts[day] = shifts
 
-def main(restaurantName):
+def main(permissions, restaurantName):
+    if permissions < 1:
+        messagebox.showerror("Permission Denied", "You need higher permissions to create a rota.")
+        return
     app = RestaurantInformationRetriever(restaurantName)
     root = tk.Tk()
     appx = RotaApp(root, restaurantName, app.shifts, app.days)
     root.mainloop()
-
-main('Marlos')

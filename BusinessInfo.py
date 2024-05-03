@@ -1,7 +1,6 @@
 import tkinter
 import sqlite3
 from tkinter import ttk, messagebox
-
 # Define the days of the week
 days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -188,7 +187,7 @@ class EnterWorkData:
         conn = sqlite3.connect('data.db')
         cursor = conn.cursor()
 
-        cursor.execute(''' CREATE TABLE IF NOT EXISTS previous_information
+        cursor.execute(''' CREATE TABLE IF NOT EXISTS current_data
                        (restaurantName TEXT, pastRota BLOB, pastData TEXT)''')
         cursor.execute('''INSERT INTO previous_information (restaurantName) 
                         VALUES (?)''', (self.restaurantName_entry.get(),))

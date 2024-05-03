@@ -126,11 +126,8 @@ class EnterEmployees:
         except:
             return None
 
-def main():
+def employee_main():
     # Create main window and run the application
     window = tkinter.Tk()
     app = EnterEmployees(window)
     window.mainloop()
-
-if __name__ == "__main__":
-    main()

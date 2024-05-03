@@ -1,15 +1,20 @@
 import tkinter
-from tkinter import messagebox
+import io
+from PIL import Image, ImageTk
+from tkinter import messagebox, ttk
 from Encryption import encrypt
 from BusinessInfo import EnterWorkData
 import sqlite3
+from Engine import main
+from EmployeeCreation import employee_main
+
 masterKey=26012006
 class LoginApp:
     def __init__(self, root):
         self.permissions=0
         self.root = root
         self.root.title("Login")
-
+        self.roles = ['Manager', 'Waiter', 'Runner', 'Bartender', 'Barback']
         self.password_label = tkinter.Label(self.root, text="User Key:")
         self.password_label.grid(row=1, column=0, padx=10, pady=5)
         self.password_entry = tkinter.Entry(self.root, show="*")
@@ -33,12 +38,15 @@ class LoginApp:
         # Encrypt the user key
         self.user_key_encrypted = encrypt(user_key)
 
-        # Query the database to check if the user key exists
-        self.cur.execute("SELECT * FROM Employee_data WHERE key = ?", (self.user_key_encrypted,))
+        # Query the database to check if the user key exists and retrieve the role
+        self.cur.execute("SELECT role FROM Employee_data WHERE key = ?", (self.user_key_encrypted,))
         user_data = self.cur.fetchone()
 
         if user_data:
             messagebox.showinfo("Success", "Login successful!")
+            # Check if the role is 'Manager' and increment permissions
+            if user_data[0] == 'Manager':
+                self.permissions += 1
             # Destroy the login window
             self.root.destroy()
             # Open the main application window
@@ -56,12 +64,27 @@ class LoginApp:
         create_restaurant_button = tkinter.Button(main_window, text="Create Restaurant", command=self.create_restaurant)
         create_restaurant_button.pack(pady=10)
 
-        create_rota_button = tkinter.Button(main_window, text="Create Rota", command=self.create_rota)
-        create_rota_button.pack(pady=10)
+    def view_rota(self, restaurant_name):
+        # Retrieve the BLOB data for the pastRota image from the database
+        self.cur.execute("SELECT pastRota FROM current_data WHERE restaurantName = ?", (restaurant_name,))
+        rota_blob = self.cur.fetchone()[0]
 
-        view_rota_button = tkinter.Button(main_window, text="View Rota", command=self.view_rota)
-        view_rota_button.pack(pady=10)
+        # Convert the BLOB data to an image
+        image_data = io.BytesIO(rota_blob)
+        image = Image.open(image_data)
 
+        # Create a new window to display the rota
+        rota_window = tkinter.Toplevel()
+        rota_window.title("View Rota")
+
+        # Convert the image to a format Tkinter can use and display it
+        photo_image = ImageTk.PhotoImage(image)
+        image_label = ttk.Label(rota_window, image=photo_image)
+        image_label.image = photo_image  # Keep a reference to avoid garbage collection
+        image_label.pack()
+
+        # Show the window with the image
+        rota_window.mainloop()
 
     def view_restaurants(self):
         # Create a new window to display restaurant names and additional options
@@ -86,13 +109,23 @@ class LoginApp:
         view_employees_button = tkinter.Button(view_window, text="View Employees", command=lambda: self.view_employees(selected_restaurant.get()[2:-3]))
         view_employees_button.pack(pady=5)
 
+        view_rota_button = tkinter.Button(view_window, text="View Rota", command=lambda: self.view_rota(selected_restaurant.get()[2:-3]))
+        view_rota_button.pack(pady=10)
+
+        create_rota_button = tkinter.Button(view_window, text="Create Rota", command=lambda: main(self.permissions, selected_restaurant.get()[2:-3]))
+        create_rota_button.pack(pady=10)
+
         delete_restaurant_button = tkinter.Button(view_window, text="Delete Restaurant", command=lambda: self.delete_restaurant_data(selected_restaurant.get()[2:-3]))
         delete_restaurant_button.pack(pady=5)
     
     # Define methods for the additional functionalities
     def view_employees(self, restaurant_name):
-        # Query the database to get employees associated with the selected restaurant
-        self.cur.execute("SELECT firstname FROM Employee_data WHERE restaurantName = ?", (restaurant_name,))
+        if self.permissions < 1:
+            messagebox.showerror("Permission Denied", "You need higher permissions to view employees.")
+            return
+
+        # Query the database to get employees and their keys associated with the selected restaurant
+        self.cur.execute("SELECT key, firstname FROM Employee_data WHERE restaurantName = ?", (restaurant_name,))
         employee_data = self.cur.fetchall()
 
         # Create a new window to display employee names
@@ -105,11 +138,105 @@ class LoginApp:
 
         # Create a listbox to display employee names
         employee_listbox = tkinter.Listbox(employees_window)
+        employee_dict = {}  # Dictionary to map employee names to their user keys
         for employee in employee_data:
-            employee_listbox.insert(tkinter.END, employee[0])
+            employee_listbox.insert(tkinter.END, employee[1])
+            employee_dict[employee[1]] = employee[0]  # Map name to user key
         employee_listbox.pack()
 
+        # Button to add a new employee
+        add_employee_button = tkinter.Button(employees_window, text="Add Employee", command=lambda: employee_main())
+        add_employee_button.pack(pady=5)
+
+        edit_employee_button = tkinter.Button(employees_window, text="Edit Employee", command=lambda: self.edit_employee(selected_employee.get()))
+        edit_employee_button.pack(pady=5)
+
+        # Button to delete an employee
+        delete_employee_button = tkinter.Button(employees_window, text="Delete Employee", command=lambda: self.delete_employee(selected_employee.get()))
+        delete_employee_button.pack(pady=5)
+
+        # Function to handle the selection of an employee from the listbox
+        def on_employee_select(event):
+            selection = event.widget.curselection()
+            if selection:
+                index = selection[0]
+                name = event.widget.get(index)
+                selected_employee.set(employee_dict[name])  # Set the selected employee's user key
+
+        # Bind the listbox select event to the function
+        employee_listbox.bind('<<ListboxSelect>>', on_employee_select)
+
+        # StringVar to hold the selected employee's user key
+        selected_employee = tkinter.StringVar(employees_window)
+        selected_employee.set("Select an employee")
+
+    def edit_employee(self, employee_id):
+        # Create a new window for editing employee details
+        edit_employee_window = tkinter.Toplevel()
+        edit_employee_window.title("Edit Employee Details")
+
+        # Query the database to get the current details of the selected employee using the unique ID
+        self.cur.execute("SELECT age, role, pay FROM Employee_data WHERE key = ?", (employee_id,))
+        employee_info = self.cur.fetchone()
+
+        # Header for Age
+        age_header = tkinter.Label(edit_employee_window, text="Age:")
+        age_header.pack(pady=(10, 0))
+
+        # Use a Spinbox for age selection and make it read-only
+        age_spinbox = tkinter.Spinbox(edit_employee_window, from_=16, to=99, state="readonly")
+        age_spinbox.delete(0, 'end')  # Clear the spinbox
+        age_spinbox.insert(0, employee_info[0])  # Set to current age
+        age_spinbox.pack(pady=5)
+
+        # Header for Role
+        role_header = tkinter.Label(edit_employee_window, text="Role:")
+        role_header.pack(pady=(10, 0))
+
+        # Use a Combobox for role selection and make it read-only
+        role_combobox = ttk.Combobox(edit_employee_window, values=self.roles, state="readonly")
+        role_combobox.set(employee_info[1])  # Set to current role
+        role_combobox.pack(pady=5)
+
+        # Header for Pay
+        pay_header = tkinter.Label(edit_employee_window, text="Pay:")
+        pay_header.pack(pady=(10, 0))
+
+        # Entry widget for pay
+        pay_entry = tkinter.Entry(edit_employee_window)
+        pay_entry.insert(0, employee_info[2])  # Set to current pay
+        pay_entry.pack(pady=5)
+
+        submit_button = tkinter.Button(edit_employee_window, text="Submit Changes",
+                                    command=lambda: self.submit_employee_changes(employee_id,
+                                                                                    age_spinbox.get(),
+                                                                                    role_combobox.get(),
+                                                                                    pay_entry.get(),
+                                                                                    edit_employee_window))
+        submit_button.pack(pady=10)
+
+    def submit_employee_changes(self, employee_id, new_age, new_role, new_pay, edit_window):
+        # Validate the pay before updating
+        try:
+            new_pay = float(new_pay)  # Attempt to convert the pay to a float
+        except ValueError:
+            messagebox.showerror("Error", "Pay must be a valid number.")
+            return
+
+        # Update the employee details in the database using the employee ID
+        self.cur.execute("UPDATE Employee_data SET age = ?, role = ?, pay = ? WHERE key = ?",
+                        (new_age, new_role, new_pay, employee_id))
+        self.conn.commit()
+
+        # Inform the user that the changes have been saved
+        messagebox.showinfo("Success", "Employee details updated successfully.")
+
+        # Close the edit window
+        edit_window.destroy()
     def edit_restaurant(self, restaurantName):
+        if self.permissions < 1:
+            messagebox.showerror("Permission Denied", "You need higher permissions to edit restaurants.")
+            return
         # Create a new window to edit the budget
         edit_window = tkinter.Toplevel()
         edit_window.title("Edit Business Information")
@@ -153,7 +280,11 @@ class LoginApp:
         update_button.grid(row=1, column=0, columnspan=2, pady=(5, 0), sticky="we")
 
     def delete_restaurant_data(self, restaurant_name):
-    # Define a function to handle deletion after confirmation
+        if self.permissions < 2:
+            messagebox.showerror("Permission Denied", "You need higher permissions to delete a restaurant.")
+            return
+        # Define a function to handle deletion after confirmation
+        # Define a function to handle deletion after confirmation
         def confirm_delete():
             # Delete restaurant data from the days_data table
             self.cur.execute("DELETE FROM days_data WHERE restaurantName=?", (restaurant_name,))
@@ -195,6 +326,9 @@ class LoginApp:
         messagebox.showinfo("Success", "Weekly budget updated successfully.")
 
     def create_restaurant(self):
+        if self.permissions < 2:
+            messagebox.showerror("Permission Denied", "You need higher permissions to create a restaurant.")
+            return
         # Create a new window to enter business information
         business_window = tkinter.Toplevel()
         business_app = EnterWorkData(business_window)
