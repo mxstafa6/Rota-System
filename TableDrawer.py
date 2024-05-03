@@ -1,5 +1,5 @@
 import tkinter as tk
-import datetime
+from datetime import datetime, timedelta
 from ObjectCreation import Serialize
 import sqlite3
 import math
@@ -20,13 +20,18 @@ class RotaApp:
         self.root = root
         self.root.title("Weekly Rota")
         self.days = days
-
+    
         self.row_index = 1  # Initialize row index
 
         # Connect to the database
         self.conn = sqlite3.connect('data.db')
         self.cursor = self.conn.cursor()
-        
+         # Calculate the first day of the current week
+        today = datetime.now()
+        self.first_day_of_week = today - timedelta(days=today.weekday())
+
+        # Add label for the week commencing
+        tk.Label(root, text=f"Week commencing: {self.first_day_of_week.strftime('%d-%m-%Y')}").grid(row=0, columnspan=len(self.days) + 1)
         # Create the timetable GUI
         self.calculate_max()
         self.day_labels()
@@ -45,7 +50,7 @@ class RotaApp:
     def day_labels(self):
         # Create labels for days
         for i, day in enumerate(self.days):
-            tk.Label(self.root, text=day, width=10, relief=tk.RIDGE).grid(row=0, column=i + 1)
+            tk.Label(self.root, text=day, width=10, relief=tk.RIDGE).grid(row=1, column=i + 1)
 
     def populate_table(self, employees_shifts):
         # Group employees by role
@@ -197,13 +202,13 @@ class RotaApp:
 
 
         # Update 'pastRota' column with the rota PNG
-        self.cursor.execute(f"UPDATE previous_information SET pastRota = ? WHERE restaurantName = ?", (img_byte_arr, self.restaurant))
+        self.cursor.execute(f"UPDATE current_data SET pastRota = ? WHERE restaurantName = ?", (img_byte_arr, self.restaurant))
 
         # Save wages text as a text file
         wages_text = self.calculate_wages_text(employees_shifts=self.employees_shifts)
 
         # Update 'pastData' column with the wage text file path
-        self.cursor.execute(f"UPDATE previous_information SET pastData = ? WHERE restaurantName = ?", (wages_text, self.restaurant))
+        self.cursor.execute(f"UPDATE current_data SET pastData = ? WHERE restaurantName = ?", (wages_text, self.restaurant))
 
         self.conn.commit()
 
@@ -211,34 +216,45 @@ class RotaApp:
     def calculate_wages_text(self, employees_shifts):
         wages_text = "Weekly Wages:\n"
         total_wage_bill = 0
-        
+        employee_wages = {}
+
         for day, shifts_info in employees_shifts.items():
             for employee_id, shifts in shifts_info.items():
                 total_hours_worked = 0
                 employee_name = self.employees[employee_id][0].name
                 hourly_pay_rate = self.employees[employee_id][0].pay
-                
+
                 for shift in shifts:
                     shift_start, shift_end = shift[1].split('-')
                     start_hour, start_minute = map(int, shift_start.split(':'))
                     end_hour, end_minute = map(int, shift_end.split(':'))
-                    
+
                     if end_hour == 0:  # Handle shifts ending at midnight
                         end_hour = 24
-                    
+
                     if start_hour > end_hour:  # Adjust for shifts starting before midnight and ending after midnight
                         total_hours_worked += (24 - start_hour) + end_hour + (end_minute - start_minute) / 60
                     else:
                         total_hours_worked += end_hour - start_hour + (end_minute - start_minute) / 60
-                
+
                 if total_hours_worked < 0:
                     print(f"Error: Negative hours worked for employee {employee_id} on {day}")
                     continue  # Skip calculation for this employee
-                
+
                 weekly_wage = total_hours_worked * hourly_pay_rate
-                wages_text += f"{employee_name}: ${weekly_wage:.2f}\n"
-                total_wage_bill += weekly_wage
-        
+
+                # Accumulate total wage for the week for each employee
+                if employee_id not in employee_wages:
+                    employee_wages[employee_id] = 0
+                employee_wages[employee_id] += weekly_wage
+
+        # Output total weekly wages for each employee
+        for employee_id, total_wage in employee_wages.items():
+            employee_name = self.employees[employee_id][0].name
+            wages_text += f"{employee_name}: ${total_wage:.2f}\n"
+            total_wage_bill += total_wage
+
         wages_text += f"\nTotal Wage Bill: ${total_wage_bill:.2f}"
-        
+
         return wages_text
+

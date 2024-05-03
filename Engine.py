@@ -93,4 +93,4 @@ def main(restaurantName):
     appx = RotaApp(root, restaurantName, app.shifts, app.days)
     root.mainloop()
 
-main('Aura')
+main('Marlos')
