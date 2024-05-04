@@ -90,6 +90,7 @@ class RotaApp:
 
                 tk.Label(self.root, text="", width=10).grid(row=self.row_index, column=0)
                 self.row_index += 1
+
     def view_wages(self):
         # Create a new window to display wages
         wages_window = tk.Toplevel(self.root)
@@ -98,15 +99,18 @@ class RotaApp:
         # Retrieve the wage bill text
         wages_text = self.calculate_wages_text(self.employees_shifts)
 
-        # Create a text widget to display the wage bill
+        # Create a text widget to display the combined wage bill and budget status
         text_widget = tk.Text(wages_window, wrap='word', height=20, width=50)
         text_widget.pack(expand=True, fill='both')
 
-        # Insert the wages text into the text widget
+        # Insert the combined wages text into the text widget
         text_widget.insert('1.0', wages_text)
 
         # Make the text widget read-only
         text_widget.config(state='disabled')
+
+        return wages_text
+
     def combine_shifts(self, employees_shifts):
         # Iterate through each day
         for day, shifts_info in employees_shifts.items():
@@ -156,7 +160,7 @@ class RotaApp:
         total_shift_points = {day: {role: 0 for role in self.roles} for day in self.days}
         for day in self.days:
             if day != "Sunday":
-                covers[day] = random.randint(0,75)
+                covers[day] = random.randint(25,75)
             else:
                 covers[day] = random.randint(75,125)
             for role in self.roles:
@@ -166,7 +170,7 @@ class RotaApp:
                     total_shift_points[day][role] = 1
                 elif role == 'Waiter':
                     total_shift_points[day][role] = 1
-                if covers[day]>50:
+                if covers[day]>25:
                     if role == 'Barback' and covers[day] > 25:
                         total_shift_points[day][role] = 1
                     if role == 'Runner':
@@ -225,7 +229,7 @@ class RotaApp:
         self.cursor.execute(f"UPDATE current_data SET pastRota = ? WHERE restaurantName = ?", (img_byte_arr, self.restaurant))
 
         # Save wages text as a text file
-        wages_text = self.calculate_wages_text(employees_shifts=self.employees_shifts)
+        wages_text = self.calculate_wages_text(self.employees_shifts)
 
         # Update 'pastData' column with the wage text file path
         self.cursor.execute(f"UPDATE current_data SET pastData = ? WHERE restaurantName = ?", (wages_text, self.restaurant))
@@ -275,6 +279,26 @@ class RotaApp:
             total_wage_bill += total_wage
 
         wages_text += f"\nTotal Wage Bill: ${total_wage_bill:.2f}"
+        # Extract the total wages amount from the wages_text
+        total_wages = float(wages_text.split('Total Wage Bill: $')[-1].strip())
+
+        # Retrieve the restaurant budget from the restaurant_data table
+        self.cursor.execute("SELECT restaurantBudget FROM restaurant_data WHERE restaurantName = ?", (self.restaurant, ))
+        budget_data = self.cursor.fetchone()
+        if budget_data:
+            restaurant_budget = float(budget_data[0])
+
+            # Calculate the difference between the total wages and the restaurant budget
+            budget_difference = total_wages - restaurant_budget
+
+            # Determine the budget status and the amount by which it is over or within the budget
+            if budget_difference > 0:
+                budget_status = "Over Budget by ${:.2f}".format(budget_difference)
+            else:
+                budget_status = "Within Budget by ${:.2f}".format(abs(budget_difference))
+
+            # Combine the wages text and the budget status into one string
+            wages_text = "{}\n\nBudget Status: {}".format(wages_text, budget_status)
 
         return wages_text
 

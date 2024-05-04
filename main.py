@@ -2,68 +2,77 @@ import tkinter
 import io
 from PIL import Image, ImageTk
 from tkinter import messagebox, ttk
+import sqlite3
 from Encryption import encrypt
 from BusinessInfo import EnterWorkData
-import sqlite3
 from Engine import main
 from EmployeeCreation import employee_main
 
-masterKey=26012006
+# Master key for the application (should be secured)
+masterKey = 26012006
+
+# LoginApp handles the login process and main window creation.
 class LoginApp:
     def __init__(self, root):
-        self.permissions=0
+        self.permissions = 0
         self.root = root
         self.root.title("Login")
         self.roles = ['Manager', 'Waiter', 'Runner', 'Bartender', 'Barback']
+        self.setup_widgets()
+        self.setup_db_connection()
+
+    # Set up the login widgets.
+    def setup_widgets(self):
         self.password_label = tkinter.Label(self.root, text="User Key:")
         self.password_label.grid(row=1, column=0, padx=10, pady=5)
         self.password_entry = tkinter.Entry(self.root, show="*")
         self.password_entry.grid(row=1, column=1, padx=10, pady=5)
-
         self.login_button = tkinter.Button(self.root, text="Login", command=self.login)
         self.login_button.grid(row=2, column=0, columnspan=2, padx=10, pady=5)
 
-        # Connect to SQLite database
+    # Establish a connection to the SQLite database.
+    def setup_db_connection(self):
         self.conn = sqlite3.connect("data.db")
         self.cur = self.conn.cursor()
 
+    # Handle the login process.
     def login(self):
         user_key = self.password_entry.get()
-
-        # Check if the user key is a 4-digit number
         if not user_key.isdigit() or len(user_key) != 4:
             messagebox.showerror("Error", "User key must be a 4-digit number")
             return
-
-        # Encrypt the user key
         self.user_key_encrypted = encrypt(user_key)
-
-        # Query the database to check if the user key exists and retrieve the role
         self.cur.execute("SELECT role FROM Employee_data WHERE key = ?", (self.user_key_encrypted,))
         user_data = self.cur.fetchone()
-
         if user_data:
             messagebox.showinfo("Success", "Login successful!")
-            # Check if the role is 'Manager' and increment permissions
             if user_data[0] == 'Manager':
                 self.permissions += 1
-            # Destroy the login window
             self.root.destroy()
-            # Open the main application window
             self.open_main_window()
         else:
             messagebox.showerror("Error", "Invalid user key")
 
+    # Open the main application window after successful login.
     def open_main_window(self):
         main_window = tkinter.Tk()
         main_window.title("Main Menu")
-
         view_restaurants_button = tkinter.Button(main_window, text="View Restaurants", command=self.view_restaurants)
         view_restaurants_button.pack(pady=10)
-
         create_restaurant_button = tkinter.Button(main_window, text="Create Restaurant", command=self.create_restaurant)
         create_restaurant_button.pack(pady=10)
 
+    def view_wages(self, restaurant_name):
+        if self.permissions < 1:
+            messagebox.showerror("Permission Denied", "You need higher permissions to view the wages.")
+            return
+        # Retrieve the text data for wages from the database
+        self.cur.execute("SELECT pastData FROM current_data WHERE restaurantName = ?", (restaurant_name,))
+        wages_data = self.cur.fetchone()[0]
+
+        # Display the wages information in a message box
+        messagebox.showinfo("Wages Information", wages_data)
+            
     def view_rota(self, restaurant_name):
         # Retrieve the BLOB data for the pastRota image from the database
         self.cur.execute("SELECT pastRota FROM current_data WHERE restaurantName = ?", (restaurant_name,))
@@ -82,6 +91,10 @@ class LoginApp:
         image_label = ttk.Label(rota_window, image=photo_image)
         image_label.image = photo_image  # Keep a reference to avoid garbage collection
         image_label.pack()
+
+        # Button to view wages
+        view_wages_button = tkinter.Button(rota_window, text="View Wages", command=lambda: self.view_wages(restaurant_name))
+        view_wages_button.pack(side=tkinter.BOTTOM, pady=10)
 
         # Show the window with the image
         rota_window.mainloop()

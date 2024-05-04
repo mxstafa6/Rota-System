@@ -1,43 +1,42 @@
 import tkinter
 import sqlite3
 from tkinter import ttk, messagebox
+
 # Define the days of the week
-days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 class EnterWorkData:
     def __init__(self, window):
-        # Initialize the main window
         self.window = window
         self.window.title("Business Information")
         self.create_widgets()
 
     def create_widgets(self):
-        # Create the main frame
+        # Create a frame to contain all widgets
         self.frame = tkinter.Frame(self.window)
         self.frame.pack()
 
-        # Create a label frame for user information
+        # Create a labeled frame for user information
         self.user_info_frame = tkinter.LabelFrame(self.frame, text="Business Information")
         self.user_info_frame.grid(row=0, column=0, padx=20, pady=10)
 
-        # Create input widgets
+        # Call method to create input widgets
         self.create_input_widgets()
 
     def toggle_day(self, day, var, selected_days):
-        # Toggle the selection of the days
+        # Method to toggle selected days
         if var.get():
             selected_days.append(day)
         else:
             selected_days.remove(day)
 
     def create_input_widgets(self):
-        # Create labels and entry widgets for user information
+        # Method to create input widgets for restaurant information
         labels = ["Days Open", "Weekly Budget", "Restaurant Name"]
         for i, label_text in enumerate(labels):
             label = tkinter.Label(self.user_info_frame, text=label_text)
             label.grid(row=0, column=i, sticky="n", padx=10, pady=5)
 
-            # Determine type of entry widget based on label
             if label_text == "Restaurant Name":
                 self.restaurantName_entry = tkinter.Entry(self.user_info_frame)
                 self.restaurantName_entry.grid(row=1, column=i, padx=30, pady=5)
@@ -45,58 +44,57 @@ class EnterWorkData:
                 self.budget_entry = tkinter.Entry(self.user_info_frame)
                 self.budget_entry.grid(row=1, column=i, padx=30, pady=5)
             elif label_text == "Days Open":
-                self.selected_days = []  # Ensure selected_days is empty
+                # Create checkboxes for each day of the week
+                self.selected_days = []
 
-                # Create Checkbuttons for each day
-                for j, day in enumerate(days):
-                    var = tkinter.BooleanVar(value=False)  # Set initial value to False
+                for j, day in enumerate(DAYS):
+                    var = tkinter.BooleanVar(value=False)
                     checkbox = ttk.Checkbutton(self.user_info_frame, text=day, variable=var)
                     checkbox.grid(sticky="w")
-                    # Lambda function with default argument to capture the current value of 'day'
+                    # Attach toggle_day method to each checkbox
                     checkbox.config(command=lambda d=day, v=var: self.toggle_day(d, v, self.selected_days))
-                # Button to validate and proceed
+
+                # Create OK button to proceed
                 ok_button = ttk.Button(self.user_info_frame, text="Ok", command=self.validate)
-                ok_button.grid(row=len(days) + 1, column=0, columnspan=len(labels), pady=(5, 0), sticky="we")
+                ok_button.grid(row=len(DAYS) + 1, column=0, columnspan=len(labels), pady=(5, 0), sticky="we")
 
     def validate(self):
-        # Validate user input
-        restaurant_name = self.restaurantName_entry.get().strip()  # Store the restaurant name as a string
+        # Method to validate user input
+        restaurant_name = self.restaurantName_entry.get().strip()
         if not restaurant_name:
             messagebox.showerror("Error", "Restaurant name cannot be empty.")
             return
 
         try:
-            self.budget = float(self.budget_entry.get())  # Convert budget to float
+            self.budget = float(self.budget_entry.get())
             try:
-                conn = sqlite3.connect('data.db')  # Connect to the SQLite database
+                # Connect to database and check if restaurant name already exists
+                conn = sqlite3.connect('data.db')
                 cursor = conn.cursor()
 
-                # Check if the restaurant name already exists in the database
                 cursor.execute("SELECT restaurantName FROM restaurant_data WHERE restaurantName=?", (restaurant_name,))
                 existing_name = cursor.fetchone()
                 conn.close()
 
-                # If restaurant name doesn't exist, proceed to enter opening hours
                 if existing_name is None:
-                    self.show_hours_window()
+                    self.show_hours_window()  # Proceed to enter opening/closing hours
                 else:
                     messagebox.showerror('Error', 'Restaurant Name already exists.')
             except Exception as e:
                 print(e)
-                self.show_hours_window()  # Show hours window if any exception occurs
+                self.show_hours_window()  # Proceed to enter opening/closing hours if database operation fails
         except ValueError:
             messagebox.showerror("Error", "Weekly budget must be a valid number.")
 
     def show_hours_window(self):
-        # Show the window to enter opening and closing hours
+        # Method to show window for entering opening/closing hours
         hours_window = tkinter.Toplevel()
         hours_window.title("Business Information")
 
-        # Initialize dictionaries to store opening and closing hours
-        self.opening_hours = {day: "OFF" for day in days}
-        self.closing_hours = {day: "OFF" for day in days}
+        self.opening_hours = {day: "OFF" for day in DAYS}
+        self.closing_hours = {day: "OFF" for day in DAYS}
 
-        # Create labels for opening and closing times
+        # Create labels and input fields for opening/closing hours for each selected day
         opening_label = tkinter.Label(hours_window, text="Opening Time")
         opening_label.grid(row=0, column=1, padx=5)
         closing_label = tkinter.Label(hours_window, text="Closing Time")
@@ -104,10 +102,8 @@ class EnterWorkData:
 
         row_counter = 1
         for day in self.selected_days:
-            # Create labels and entry widgets for each selected day
             tkinter.Label(hours_window, text=day).grid(row=row_counter, column=0, sticky="e")
 
-            # Entry widget for opening time
             opening_hours_entry = ttk.Frame(hours_window)
             opening_hours_entry.grid(row=row_counter, column=1, padx=5)
             opening_hours_spinbox = ttk.Spinbox(opening_hours_entry, from_=0, to=23, width=2, state="readonly")
@@ -116,7 +112,6 @@ class EnterWorkData:
             opening_hours_spinbox_minutes.grid(row=0, column=1)
             opening_hours_spinbox_minutes.current(0)
 
-            # Entry widget for closing time
             closing_hours_entry = ttk.Frame(hours_window)
             closing_hours_entry.grid(row=row_counter, column=2, padx=5)
             closing_hours_spinbox = ttk.Spinbox(closing_hours_entry, from_=0, to=23, width=2, state="readonly")
@@ -127,39 +122,32 @@ class EnterWorkData:
 
             row_counter += 1
 
-            # Function to store opening and closing hours
             def store_hours(event=None, day=day, opening_spinbox=opening_hours_spinbox,
                             opening_minutes=opening_hours_spinbox_minutes, closing_spinbox=closing_hours_spinbox,
                             closing_minutes=closing_hours_spinbox_minutes):
+                # Method to store selected opening/closing hours
                 if event and str(event.type) == "VirtualEvent":
                     return
 
-                # Format opening and closing hours
                 opening_hour = f"{opening_spinbox.get()}:{opening_minutes.get()}"
                 closing_hour = f"{closing_spinbox.get()}:{closing_minutes.get()}"
 
                 self.opening_hours[day] = opening_hour
                 self.closing_hours[day] = closing_hour
 
-                # Print the opening and closing hours for debugging
-                print("Opening Hours:", self.opening_hours)
-                print("Closing Hours:", self.closing_hours)
-
-            # Bind the function to the Spinbox and Combobox entries
             opening_hours_spinbox.config(command=store_hours)
             opening_hours_spinbox_minutes.bind("<<ComboboxSelected>>", store_hours)
             closing_hours_spinbox.config(command=store_hours)
             closing_hours_spinbox_minutes.bind("<<ComboboxSelected>>", store_hours)
 
-        # Function to check opening and closing times
         def check_times():
+            # Method to check if opening time is before closing time for each selected day
             errors = []
             for day in self.selected_days:
                 opening_hour = self.opening_hours[day]
                 closing_hour = self.closing_hours[day]
 
                 if opening_hour == "OFF" or closing_hour == "OFF":
-                    # If either opening or closing hour is "OFF", consider it as left untouched
                     errors.append(f"Please enter opening and closing times for {day}.")
                 else:
                     opening_hour_parts = opening_hour.split(":")
@@ -170,36 +158,33 @@ class EnterWorkData:
                     closing_hour_int = int(closing_hour_parts[0])
                     closing_minutes_int = int(closing_hour_parts[1])
 
-                    # Check if opening time is before closing time
                     if closing_hour_int < opening_hour_int or (closing_hour_int == opening_hour_int and closing_minutes_int <= opening_minutes_int):
                         errors.append(f"Opening time must be before closing time for {day}.")
 
             if errors:
                 messagebox.showerror("Error", "\n".join(errors))
             else:
-                self.enter_restaurantdata()
-        # Button to proceed to enter restaurant data
+                self.enter_restaurantdata()  # Proceed to enter restaurant data if validation passes
+
+        # Create OK button to validate opening/closing hours
         ok_button = ttk.Button(hours_window, text="Ok", command=check_times)
         ok_button.grid(row=row_counter, column=0, columnspan=3, pady=(5, 10), sticky="we")
 
     def enter_restaurantdata(self):
-        # Connect to the SQLite database
+        # Method to store entered restaurant data in the database
         conn = sqlite3.connect('data.db')
         cursor = conn.cursor()
 
         cursor.execute(''' CREATE TABLE IF NOT EXISTS current_data
-                       (restaurantName TEXT, pastRota BLOB, pastData TEXT)''')
-        cursor.execute('''INSERT INTO previous_information (restaurantName) 
+                           (restaurantName TEXT, pastRota BLOB, pastData TEXT)''')
+        cursor.execute('''INSERT INTO current_data (restaurantName) 
                         VALUES (?)''', (self.restaurantName_entry.get(),))
-        # Create a table to store restaurant data if it doesn't exist already
         cursor.execute('''CREATE TABLE IF NOT EXISTS restaurant_data
                         (restaurantName TEXT, restaurantBudget FLOAT)''')
 
-        # Insert restaurant name, budget, and roles into the restaurant_data table
         cursor.execute('''INSERT INTO restaurant_data (restaurantName, restaurantBudget) 
                         VALUES (?, ?)''', (self.restaurantName_entry.get(), self.budget))
 
-        # Create a new table to store opening and closing times for each day
         cursor.execute('''CREATE TABLE IF NOT EXISTS days_data
                         (restaurantName TEXT, 
                         Monday TEXT, 
@@ -210,7 +195,6 @@ class EnterWorkData:
                         Saturday TEXT, 
                         Sunday TEXT)''')
 
-        # Insert opening and closing times for each day into the days_data table
         cursor.execute('''INSERT INTO days_data (restaurantName, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
                        (self.restaurantName_entry.get(),
@@ -222,10 +206,8 @@ class EnterWorkData:
                         f"{self.opening_hours.get('Saturday', 'OFF')}-{self.closing_hours.get('Saturday', 'OFF')}",
                         f"{self.opening_hours.get('Sunday', 'OFF')}-{self.closing_hours.get('Sunday', 'OFF')}"))
 
-        # Commit changes and close connection
         conn.commit()
         conn.close()
 
-        # Destroy all windows
         self.window.destroy()
         self.window.quit()
