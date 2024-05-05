@@ -126,30 +126,33 @@ class LoginApp:
         messagebox.showinfo("Wages Information", wages_data)
             
     def view_rota(self, restaurant_name):
-        # Retrieve the BLOB data for the pastRota image from the database
-        self.cur.execute("SELECT currentRota FROM current_data WHERE restaurantName = ?", (restaurant_name,))
-        rota_blob = self.cur.fetchone()[0]
+        try:
+            # Retrieve the BLOB data for the pastRota image from the database
+            self.cur.execute("SELECT currentRota FROM current_data WHERE restaurantName = ?", (restaurant_name,))
+            rota_blob = self.cur.fetchone()[0]
 
-        # Convert the BLOB data to an image
-        image_data = io.BytesIO(rota_blob)
-        image = Image.open(image_data)
+            # Convert the BLOB data to an image
+            image_data = io.BytesIO(rota_blob)
+            image = Image.open(image_data)
 
-        # Create a new window to display the rota
-        rota_window = tkinter.Toplevel()
-        rota_window.title("View Rota")
+            # Create a new window to display the rota
+            rota_window = tkinter.Toplevel()
+            rota_window.title("View Rota")
 
-        # Convert the image to a format Tkinter can use and display it
-        photo_image = ImageTk.PhotoImage(image)
-        image_label = ttk.Label(rota_window, image=photo_image)
-        image_label.image = photo_image  # Keep a reference to avoid garbage collection
-        image_label.pack()
+            # Convert the image to a format Tkinter can use and display it
+            photo_image = ImageTk.PhotoImage(image)
+            image_label = ttk.Label(rota_window, image=photo_image)
+            image_label.image = photo_image  # Keep a reference to avoid garbage collection
+            image_label.pack()
 
-        # Button to view wages
-        view_wages_button = tkinter.Button(rota_window, text="View Wages", command=lambda: self.view_wages(restaurant_name))
-        view_wages_button.pack(side=tkinter.BOTTOM, pady=10)
+            # Button to view wages
+            view_wages_button = tkinter.Button(rota_window, text="View Wages", command=lambda: self.view_wages(restaurant_name))
+            view_wages_button.pack(side=tkinter.BOTTOM, pady=10)
 
-        # Show the window with the image
-        rota_window.mainloop()
+            # Show the window with the image
+            rota_window.mainloop()
+        except:
+            messagebox.showerror("Error", "No rota to view.")
 
     def view_restaurants(self):
         # Create a new window to display restaurant names and additional options
@@ -192,52 +195,54 @@ class LoginApp:
         if self.permissions < 1:
             messagebox.showerror("Permission Denied", "You need higher permissions to view employees.")
             return
+        try:
+            # Query the database to get employees and their keys associated with the selected restaurant
+            self.cur.execute("SELECT key, firstname FROM employee_data WHERE restaurantName = ?", (restaurant_name,))
+            employee_data = self.cur.fetchall()
 
-        # Query the database to get employees and their keys associated with the selected restaurant
-        self.cur.execute("SELECT key, firstname FROM employee_data WHERE restaurantName = ?", (restaurant_name,))
-        employee_data = self.cur.fetchall()
+            # Create a new window to display employee names
+            employees_window = tkinter.Toplevel()
+            employees_window.title("View Employees")
 
-        # Create a new window to display employee names
-        employees_window = tkinter.Toplevel()
-        employees_window.title("View Employees")
+            # Create a label to display employee names
+            employee_label = tkinter.Label(employees_window, text="Employees:")
+            employee_label.pack()
 
-        # Create a label to display employee names
-        employee_label = tkinter.Label(employees_window, text="Employees:")
-        employee_label.pack()
+            # Create a listbox to display employee names
+            employee_listbox = tkinter.Listbox(employees_window)
+            employee_dict = {}  # Dictionary to map employee names to their user keys
+            for employee in employee_data:
+                employee_listbox.insert(tkinter.END, employee[1])
+                employee_dict[employee[1]] = employee[0]  # Map name to user key
+            employee_listbox.pack()
 
-        # Create a listbox to display employee names
-        employee_listbox = tkinter.Listbox(employees_window)
-        employee_dict = {}  # Dictionary to map employee names to their user keys
-        for employee in employee_data:
-            employee_listbox.insert(tkinter.END, employee[1])
-            employee_dict[employee[1]] = employee[0]  # Map name to user key
-        employee_listbox.pack()
+            # Button to add a new employee
+            add_employee_button = tkinter.Button(employees_window, text="Add Employee", command=lambda: employee_main())
+            add_employee_button.pack(pady=5)
 
-        # Button to add a new employee
-        add_employee_button = tkinter.Button(employees_window, text="Add Employee", command=lambda: employee_main())
-        add_employee_button.pack(pady=5)
+            edit_employee_button = tkinter.Button(employees_window, text="Edit Employee", command=lambda: self.edit_employee(selected_employee.get()))
+            edit_employee_button.pack(pady=5)
 
-        edit_employee_button = tkinter.Button(employees_window, text="Edit Employee", command=lambda: self.edit_employee(selected_employee.get()))
-        edit_employee_button.pack(pady=5)
+            # Button to delete an employee
+            delete_employee_button = tkinter.Button(employees_window, text="Delete Employee", command=lambda: self.delete_employee(selected_employee.get()))
+            delete_employee_button.pack(pady=5)
 
-        # Button to delete an employee
-        delete_employee_button = tkinter.Button(employees_window, text="Delete Employee", command=lambda: self.delete_employee(selected_employee.get()))
-        delete_employee_button.pack(pady=5)
+            # Function to handle the selection of an employee from the listbox
+            def on_employee_select(event):
+                selection = event.widget.curselection()
+                if selection:
+                    index = selection[0]
+                    name = event.widget.get(index)
+                    selected_employee.set(employee_dict[name])  # Set the selected employee's user key
 
-        # Function to handle the selection of an employee from the listbox
-        def on_employee_select(event):
-            selection = event.widget.curselection()
-            if selection:
-                index = selection[0]
-                name = event.widget.get(index)
-                selected_employee.set(employee_dict[name])  # Set the selected employee's user key
+            # Bind the listbox select event to the function
+            employee_listbox.bind('<<ListboxSelect>>', on_employee_select)
 
-        # Bind the listbox select event to the function
-        employee_listbox.bind('<<ListboxSelect>>', on_employee_select)
-
-        # StringVar to hold the selected employee's user key
-        selected_employee = tkinter.StringVar(employees_window)
-        selected_employee.set("Select an employee")
+            # StringVar to hold the selected employee's user key
+            selected_employee = tkinter.StringVar(employees_window)
+            selected_employee.set("Select an employee")
+        except:
+            messagebox.showerror("Error", "No employee table available.")
 
     def edit_employee(self, employee_id):
         # Create a new window for editing employee details
