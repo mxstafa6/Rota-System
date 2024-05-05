@@ -225,14 +225,14 @@ class RotaApp:
         first_day_of_week_str = first_day_of_week.strftime('%d-%m-%Y')
 
 
-        # Update 'pastRota' column with the rota PNG
-        self.cursor.execute(f"UPDATE current_data SET pastRota = ? WHERE restaurantName = ?", (img_byte_arr, self.restaurant))
+        # Update 'currentRota' column with the rota PNG
+        self.cursor.execute(f"UPDATE current_data SET currentRota = ? WHERE restaurantName = ?", (img_byte_arr, self.restaurant))
 
         # Save wages text as a text file
         wages_text = self.calculate_wages_text(self.employees_shifts)
 
-        # Update 'pastData' column with the wage text file path
-        self.cursor.execute(f"UPDATE current_data SET pastData = ? WHERE restaurantName = ?", (wages_text, self.restaurant))
+        # Update 'currentWages' column with the wage text file path
+        self.cursor.execute(f"UPDATE current_data SET currentWages = ? WHERE restaurantName = ?", (wages_text, self.restaurant))
 
         self.conn.commit()
 

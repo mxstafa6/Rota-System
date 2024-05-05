@@ -109,7 +109,7 @@ class LoginApp:
             messagebox.showerror("Permission Denied", "You need higher permissions to view the wages.")
             return
         # Retrieve the text data for wages from the database
-        self.cur.execute("SELECT pastData FROM current_data WHERE restaurantName = ?", (restaurant_name,))
+        self.cur.execute("SELECT currentWages FROM current_data WHERE restaurantName = ?", (restaurant_name,))
         wages_data = self.cur.fetchone()[0]
 
         # Display the wages information in a message box
@@ -117,7 +117,7 @@ class LoginApp:
             
     def view_rota(self, restaurant_name):
         # Retrieve the BLOB data for the pastRota image from the database
-        self.cur.execute("SELECT pastRota FROM current_data WHERE restaurantName = ?", (restaurant_name,))
+        self.cur.execute("SELECT currentRota FROM current_data WHERE restaurantName = ?", (restaurant_name,))
         rota_blob = self.cur.fetchone()[0]
 
         # Convert the BLOB data to an image
@@ -351,7 +351,7 @@ class LoginApp:
             self.cur.execute("DELETE FROM Employee_data WHERE restaurantName=?", (restaurant_name,))
 
             self.conn.commit()
-            
+
             # Inform the user that the restaurant and related information have been deleted
             messagebox.showinfo("Success", "Restaurant and related information have been deleted.")
 

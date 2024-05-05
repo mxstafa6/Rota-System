@@ -176,7 +176,7 @@ class EnterWorkData:
         cursor = conn.cursor()
 
         cursor.execute(''' CREATE TABLE IF NOT EXISTS current_data
-                           (restaurantName TEXT, pastRota BLOB, pastData TEXT)''')
+                           (restaurantName TEXT, currentRota BLOB, currentWages TEXT)''')
         cursor.execute('''INSERT INTO current_data (restaurantName) 
                         VALUES (?)''', (self.restaurantName_entry.get(),))
         cursor.execute('''CREATE TABLE IF NOT EXISTS restaurant_data
