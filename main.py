@@ -48,7 +48,7 @@ class LoginApp:
             return
 
         self.user_key_encrypted = encrypt(user_key)
-        self.cur.execute("SELECT role FROM Employee_data WHERE key = ?", (self.user_key_encrypted,))
+        self.cur.execute("SELECT role FROM employee_data WHERE key = ?", (self.user_key_encrypted,))
         user_data = self.cur.fetchone()
         if user_data:
             messagebox.showinfo("Success", "Login successful!")
@@ -147,7 +147,7 @@ class LoginApp:
         view_window.title("View Restaurants")
 
         # Query the database to get restaurant names associated with the encrypted user key
-        self.cur.execute("SELECT restaurantName FROM Employee_data WHERE key = ?", (self.user_key_encrypted,))
+        self.cur.execute("SELECT restaurantName FROM employee_data WHERE key = ?", (self.user_key_encrypted,))
         restaurant_data = self.cur.fetchall()
 
         # Create a dropdown menu to display restaurant names
@@ -180,7 +180,7 @@ class LoginApp:
             return
 
         # Query the database to get employees and their keys associated with the selected restaurant
-        self.cur.execute("SELECT key, firstname FROM Employee_data WHERE restaurantName = ?", (restaurant_name,))
+        self.cur.execute("SELECT key, firstname FROM employee_data WHERE restaurantName = ?", (restaurant_name,))
         employee_data = self.cur.fetchall()
 
         # Create a new window to display employee names
@@ -231,7 +231,7 @@ class LoginApp:
         edit_employee_window.title("Edit Employee Details")
 
         # Query the database to get the current details of the selected employee using the unique ID
-        self.cur.execute("SELECT age, role, pay FROM Employee_data WHERE key = ?", (employee_id,))
+        self.cur.execute("SELECT age, role, pay FROM employee_data WHERE key = ?", (employee_id,))
         employee_info = self.cur.fetchone()
 
         # Header for Age
@@ -279,7 +279,7 @@ class LoginApp:
             return
 
         # Update the employee details in the database using the employee ID
-        self.cur.execute("UPDATE Employee_data SET age = ?, role = ?, pay = ? WHERE key = ?",
+        self.cur.execute("UPDATE employee_data SET age = ?, role = ?, pay = ? WHERE key = ?",
                         (new_age, new_role, new_pay, employee_id))
         self.conn.commit()
 
@@ -322,16 +322,12 @@ class LoginApp:
         self.budget_entry.insert(0, budget_data[0])  # Populate the entry with existing budget
         self.budget_entry.grid(row=0, column=1, padx=30, pady=5)
 
-        # Button to update the budget
-        update_button = tkinter.Button(self.user_info_frame, text="Update", command=self.update_budget)
-        update_button.grid(row=1, column=0, columnspan=2, pady=(5, 0), sticky="we")
-
         # Function to destroy the window after displaying the messagebox
         def destroy_window():
             edit_window.destroy()
 
         # Button to update the budget
-        update_button = tkinter.Button(self.user_info_frame, text="Update", command=lambda: [self.update_budget(), destroy_window()])
+        update_button = tkinter.Button(self.user_info_frame, text="Update", command=lambda: [self.update_budget(restaurantName), destroy_window()])
         update_button.grid(row=1, column=0, columnspan=2, pady=(5, 0), sticky="we")
 
     def delete_restaurant_data(self, restaurant_name):
@@ -348,7 +344,7 @@ class LoginApp:
             self.cur.execute("DELETE FROM restaurant_data WHERE restaurantName=?", (restaurant_name,))
 
             # Delete employee data associated with the restaurant
-            self.cur.execute("DELETE FROM Employee_data WHERE restaurantName=?", (restaurant_name,))
+            self.cur.execute("DELETE FROM employee_data WHERE restaurantName=?", (restaurant_name,))
 
             self.conn.commit()
 
@@ -361,7 +357,7 @@ class LoginApp:
 
 
 
-    def update_budget(self):
+    def update_budget(self, restaurantName):
         try:
             new_budget = float(self.budget_entry.get())  # Get the new budget value from the entry widget
         except ValueError:
@@ -372,7 +368,7 @@ class LoginApp:
         conn = sqlite3.connect('data.db')
         cursor = conn.cursor()
 
-        cursor.execute("UPDATE restaurant_data SET restaurantBudget=?", (new_budget,))
+        cursor.execute("UPDATE restaurant_data SET restaurantBudget=? WHERE restaurantName=?", (new_budget, restaurantName))
 
         conn.commit()
         conn.close()

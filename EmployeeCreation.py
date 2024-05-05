@@ -86,10 +86,10 @@ class EnterEmployees:
         # Method to enter employee data into the database
         conn = sqlite3.connect('data.db')
         cursor = conn.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS Employee_Data
+        cursor.execute('''CREATE TABLE IF NOT EXISTS employee_data
                         (key TEXT, firstname TEXT, lastname TEXT, gender TEXT, age INT, role TEXT, pay FLOAT, restaurantName TEXT)''')
 
-        cursor.execute('''INSERT INTO Employee_Data (key, firstname, lastname, gender, age, role, pay, restaurantName)
+        cursor.execute('''INSERT INTO employee_data (key, firstname, lastname, gender, age, role, pay, restaurantName)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (encrypt(self.key), self.data["First Name"], self.data["Last Name"],
                                                              self.data["Gender"], self.data["Age"], self.data["Role"], round(self.hourly_pay, 2), self.data['Restaurant']))
         conn.commit()
@@ -103,7 +103,7 @@ class EnterEmployees:
         try:
             conn = sqlite3.connect('data.db')
             cursor = conn.cursor()
-            cursor.execute("SELECT key FROM Employee_Data WHERE key=?", (encrypt(key),))
+            cursor.execute("SELECT key FROM employee_data WHERE key=?", (encrypt(key),))
             existing_key = cursor.fetchone()
             conn.close()
 

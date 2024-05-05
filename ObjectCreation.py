@@ -15,7 +15,7 @@ def Serialize(dict,list,restaurantName):
     # Retrieve employee data from the database
     conn = sqlite3.connect('data.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT firstname, lastname, age, role, gender, pay, key FROM Employee_Data where restaurantName=?", (restaurantName, ))
+    cursor.execute("SELECT firstname, lastname, age, role, gender, pay, key FROM employee_data where restaurantName=?", (restaurantName, ))
     employees_data = cursor.fetchall()
     # Organize employee data as objects, stored in the dictionary by key
     for data in employees_data:
