@@ -275,12 +275,12 @@ class RotaApp:
         # Output total weekly wages for each employee
         for employee_id, total_wage in employee_wages.items():
             employee_name = self.employees[employee_id][0].name
-            wages_text += f"{employee_name}: ${total_wage:.2f}\n"
+            wages_text += f"{employee_name}: £{total_wage:.2f}\n"
             total_wage_bill += total_wage
 
-        wages_text += f"\nTotal Wage Bill: ${total_wage_bill:.2f}"
+        wages_text += f"\nTotal Wage Bill: £{total_wage_bill:.2f}"
         # Extract the total wages amount from the wages_text
-        total_wages = float(wages_text.split('Total Wage Bill: $')[-1].strip())
+        total_wages = float(wages_text.split('Total Wage Bill: £')[-1].strip())
 
         # Retrieve the restaurant budget from the restaurant_data table
         self.cursor.execute("SELECT restaurantBudget FROM restaurant_data WHERE restaurantName = ?", (self.restaurant, ))
@@ -293,9 +293,9 @@ class RotaApp:
 
             # Determine the budget status and the amount by which it is over or within the budget
             if budget_difference > 0:
-                budget_status = "Over Budget by ${:.2f}".format(budget_difference)
+                budget_status = "Over Budget by £{:.2f}".format(budget_difference)
             else:
-                budget_status = "Within Budget by ${:.2f}".format(abs(budget_difference))
+                budget_status = "Within Budget by £{:.2f}".format(abs(budget_difference))
 
             # Combine the wages text and the budget status into one string
             wages_text = "{}\n\nBudget Status: {}".format(wages_text, budget_status)

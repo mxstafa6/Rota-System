@@ -29,6 +29,8 @@ class LoginApp:
         self.password_entry.grid(row=1, column=1, padx=10, pady=5)
         self.login_button = tkinter.Button(self.root, text="Login", command=self.login)
         self.login_button.grid(row=2, column=0, columnspan=2, padx=10, pady=5)
+        self.exit_button = tkinter.Button(self.root, text="Exit", command=quit)
+        self.exit_button.grid(row=2, column=1, columnspan=2, padx=10, pady=5)
 
     # Establish a connection to the SQLite database.
     def setup_db_connection(self):
