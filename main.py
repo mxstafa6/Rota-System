@@ -48,15 +48,19 @@ class LoginApp:
             return
 
         self.user_key_encrypted = encrypt(user_key)
-        self.cur.execute("SELECT role FROM employee_data WHERE key = ?", (self.user_key_encrypted,))
-        user_data = self.cur.fetchone()
-        if user_data:
-            messagebox.showinfo("Success", "Login successful!")
-            if user_data[0] == 'Manager':
-                self.permissions += 1
-            self.open_main_window()
-        else:
-            messagebox.showerror("Error", "Invalid user key")
+        try:
+            self.cur.execute("SELECT role FROM employee_data WHERE key = ?", (self.user_key_encrypted,))
+            user_data = self.cur.fetchone()
+            if user_data:
+                messagebox.showinfo("Success", "Login successful!")
+                if user_data[0] == 'Manager':
+                    self.permissions += 1
+                self.open_main_window()
+            else:
+                messagebox.showerror("Error", "Invalid user key")
+        except:
+            messagebox.showerror("Error", "Login using the master key.")
+            return
 
     # Open the main application window after successful login.
     def open_main_window(self, all_restaurants=False):
@@ -76,33 +80,37 @@ class LoginApp:
         # Create a new window to display all restaurant names and additional options
         all_view_window = tkinter.Toplevel()
         all_view_window.title("View All Restaurants")
+        try:
+            # Query the database to get all restaurant names
+            self.cur.execute("SELECT restaurantName FROM restaurant_data")
+            all_restaurant_data = self.cur.fetchall()
 
-        # Query the database to get all restaurant names
-        self.cur.execute("SELECT restaurantName FROM restaurant_data")
-        all_restaurant_data = self.cur.fetchall()
+            # Create a dropdown menu to display all restaurant names
+            all_selected_restaurant = tkinter.StringVar(all_view_window)
+            all_selected_restaurant.set(all_restaurant_data[0][0] if all_restaurant_data else "No Restaurants")
 
-        # Create a dropdown menu to display all restaurant names
-        all_selected_restaurant = tkinter.StringVar(all_view_window)
-        all_selected_restaurant.set(all_restaurant_data[0][0] if all_restaurant_data else "No Restaurants")
+            all_dropdown_menu = tkinter.OptionMenu(all_view_window, all_selected_restaurant, *[restaurant[0] for restaurant in all_restaurant_data])
+            all_dropdown_menu.pack(padx=10, pady=10)
 
-        all_dropdown_menu = tkinter.OptionMenu(all_view_window, all_selected_restaurant, *[restaurant[0] for restaurant in all_restaurant_data])
-        all_dropdown_menu.pack(padx=10, pady=10)
+            # Create buttons for additional options, similar to view_restaurants
+            edit_all_restaurant_button = tkinter.Button(all_view_window, text="Edit Restaurant Budget", command=lambda: self.edit_restaurant(all_selected_restaurant.get()))
+            edit_all_restaurant_button.pack(pady=5)
 
-        # Create buttons for additional options, similar to view_restaurants
-        edit_all_restaurant_button = tkinter.Button(all_view_window, text="Edit Restaurant Budget", command=lambda: self.edit_restaurant(all_selected_restaurant.get()))
-        edit_all_restaurant_button.pack(pady=5)
+            view_all_employees_button = tkinter.Button(all_view_window, text="View Employees", command=lambda: self.view_employees(all_selected_restaurant.get()))
+            view_all_employees_button.pack(pady=5)
 
-        view_all_employees_button = tkinter.Button(all_view_window, text="View Employees", command=lambda: self.view_employees(all_selected_restaurant.get()))
-        view_all_employees_button.pack(pady=5)
+            view_all_rota_button = tkinter.Button(all_view_window, text="View Rota", command=lambda: self.view_rota(all_selected_restaurant.get()))
+            view_all_rota_button.pack(pady=10)
 
-        view_all_rota_button = tkinter.Button(all_view_window, text="View Rota", command=lambda: self.view_rota(all_selected_restaurant.get()))
-        view_all_rota_button.pack(pady=10)
+            create_all_rota_button = tkinter.Button(all_view_window, text="Create Rota", command=lambda: main(self.permissions, all_selected_restaurant.get()))
+            create_all_rota_button.pack(pady=10)
 
-        create_all_rota_button = tkinter.Button(all_view_window, text="Create Rota", command=lambda: main(self.permissions, all_selected_restaurant.get()))
-        create_all_rota_button.pack(pady=10)
-
-        delete_all_restaurant_button = tkinter.Button(all_view_window, text="Delete Restaurant", command=lambda: self.delete_restaurant_data(all_selected_restaurant.get()))
-        delete_all_restaurant_button.pack(pady=5)
+            delete_all_restaurant_button = tkinter.Button(all_view_window, text="Delete Restaurant", command=lambda: self.delete_restaurant_data(all_selected_restaurant.get()))
+            delete_all_restaurant_button.pack(pady=5)
+        except:
+            messagebox.showerror("Error", "No restaurants available to view.")
+            all_view_window.destroy()  # Close the view window as there's nothing to show
+            return
 
     def view_wages(self, restaurant_name):
         if self.permissions < 1:
@@ -145,33 +153,37 @@ class LoginApp:
         # Create a new window to display restaurant names and additional options
         view_window = tkinter.Toplevel()
         view_window.title("View Restaurants")
+        try:
+            # Query the database to get restaurant names associated with the encrypted user key
+            self.cur.execute("SELECT restaurantName FROM employee_data WHERE key = ?", (self.user_key_encrypted,))
+            restaurant_data = self.cur.fetchall()
 
-        # Query the database to get restaurant names associated with the encrypted user key
-        self.cur.execute("SELECT restaurantName FROM employee_data WHERE key = ?", (self.user_key_encrypted,))
-        restaurant_data = self.cur.fetchall()
+            # Create a dropdown menu to display restaurant names
+            selected_restaurant = tkinter.StringVar(view_window)
+            selected_restaurant.set(restaurant_data[0] if restaurant_data else "No Restaurants")
 
-        # Create a dropdown menu to display restaurant names
-        selected_restaurant = tkinter.StringVar(view_window)
-        selected_restaurant.set(restaurant_data[0] if restaurant_data else "No Restaurants")
+            dropdown_menu = tkinter.OptionMenu(view_window, selected_restaurant, *restaurant_data)
+            dropdown_menu.pack(padx=10, pady=10)
 
-        dropdown_menu = tkinter.OptionMenu(view_window, selected_restaurant, *restaurant_data)
-        dropdown_menu.pack(padx=10, pady=10)
+            # Create buttons for additional options
+            edit_restaurant_button = tkinter.Button(view_window, text="Edit Restaurant Budget", command=lambda: self.edit_restaurant(selected_restaurant.get()[2:-3]))
+            edit_restaurant_button.pack(pady=5)
 
-        # Create buttons for additional options
-        edit_restaurant_button = tkinter.Button(view_window, text="Edit Restaurant Budget", command=lambda: self.edit_restaurant(selected_restaurant.get()[2:-3]))
-        edit_restaurant_button.pack(pady=5)
+            view_employees_button = tkinter.Button(view_window, text="View Employees", command=lambda: self.view_employees(selected_restaurant.get()[2:-3]))
+            view_employees_button.pack(pady=5)
 
-        view_employees_button = tkinter.Button(view_window, text="View Employees", command=lambda: self.view_employees(selected_restaurant.get()[2:-3]))
-        view_employees_button.pack(pady=5)
+            view_rota_button = tkinter.Button(view_window, text="View Rota", command=lambda: self.view_rota(selected_restaurant.get()[2:-3]))
+            view_rota_button.pack(pady=10)
 
-        view_rota_button = tkinter.Button(view_window, text="View Rota", command=lambda: self.view_rota(selected_restaurant.get()[2:-3]))
-        view_rota_button.pack(pady=10)
+            create_rota_button = tkinter.Button(view_window, text="Create Rota", command=lambda: main(self.permissions, selected_restaurant.get()[2:-3]))
+            create_rota_button.pack(pady=10)
 
-        create_rota_button = tkinter.Button(view_window, text="Create Rota", command=lambda: main(self.permissions, selected_restaurant.get()[2:-3]))
-        create_rota_button.pack(pady=10)
-
-        delete_restaurant_button = tkinter.Button(view_window, text="Delete Restaurant", command=lambda: self.delete_restaurant_data(selected_restaurant.get()[2:-3]))
-        delete_restaurant_button.pack(pady=5)
+            delete_restaurant_button = tkinter.Button(view_window, text="Delete Restaurant", command=lambda: self.delete_restaurant_data(selected_restaurant.get()[2:-3]))
+            delete_restaurant_button.pack(pady=5)
+        except:
+            messagebox.showerror("Error", "No restaurants available to view.")
+            view_window.destroy()  # Close the view window as there's nothing to show
+            return
     
     # Define methods for the additional functionalities
     def view_employees(self, restaurant_name):
