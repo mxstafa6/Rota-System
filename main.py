@@ -35,12 +35,18 @@ class LoginApp:
         self.conn = sqlite3.connect("data.db")
         self.cur = self.conn.cursor()
 
-    # Handle the login process.
     def login(self):
         user_key = self.password_entry.get()
+        # Check if the entered key is the master key
+        if user_key == str(masterKey):
+            self.permissions = 2  # Grant highest permission level
+            self.open_main_window(all_restaurants=True)  # Open the main window with access to all restaurants
+            return
+
         if not user_key.isdigit() or len(user_key) != 4:
             messagebox.showerror("Error", "User key must be a 4-digit number")
             return
+
         self.user_key_encrypted = encrypt(user_key)
         self.cur.execute("SELECT role FROM Employee_data WHERE key = ?", (self.user_key_encrypted,))
         user_data = self.cur.fetchone()
@@ -48,19 +54,55 @@ class LoginApp:
             messagebox.showinfo("Success", "Login successful!")
             if user_data[0] == 'Manager':
                 self.permissions += 1
-            self.root.destroy()
             self.open_main_window()
         else:
             messagebox.showerror("Error", "Invalid user key")
 
     # Open the main application window after successful login.
-    def open_main_window(self):
-        main_window = tkinter.Tk()
-        main_window.title("Main Menu")
-        view_restaurants_button = tkinter.Button(main_window, text="View Restaurants", command=self.view_restaurants)
-        view_restaurants_button.pack(pady=10)
-        create_restaurant_button = tkinter.Button(main_window, text="Create Restaurant", command=self.create_restaurant)
+    def open_main_window(self, all_restaurants=False):
+        self.main_window = tkinter.Tk()
+        self.main_window.title("Main Menu")
+        if all_restaurants:
+            view_restaurants_button = tkinter.Button(self.main_window, text="View All Restaurants", command=self.view_all_restaurants)
+            view_restaurants_button.pack(pady=10)
+        else:
+            view_restaurants_button = tkinter.Button(self.main_window, text="View Restaurants", command=self.view_restaurants)
+            view_restaurants_button.pack(pady=10)
+        create_restaurant_button = tkinter.Button(self.main_window, text="Create Restaurant", command=self.create_restaurant)
         create_restaurant_button.pack(pady=10)
+        self.main_window.mainloop()  # Start the main loop for the main window
+
+    def view_all_restaurants(self):
+        # Create a new window to display all restaurant names and additional options
+        all_view_window = tkinter.Toplevel()
+        all_view_window.title("View All Restaurants")
+
+        # Query the database to get all restaurant names
+        self.cur.execute("SELECT restaurantName FROM restaurant_data")
+        all_restaurant_data = self.cur.fetchall()
+
+        # Create a dropdown menu to display all restaurant names
+        all_selected_restaurant = tkinter.StringVar(all_view_window)
+        all_selected_restaurant.set(all_restaurant_data[0][0] if all_restaurant_data else "No Restaurants")
+
+        all_dropdown_menu = tkinter.OptionMenu(all_view_window, all_selected_restaurant, *[restaurant[0] for restaurant in all_restaurant_data])
+        all_dropdown_menu.pack(padx=10, pady=10)
+
+        # Create buttons for additional options, similar to view_restaurants
+        edit_all_restaurant_button = tkinter.Button(all_view_window, text="Edit Restaurant Budget", command=lambda: self.edit_restaurant(all_selected_restaurant.get()))
+        edit_all_restaurant_button.pack(pady=5)
+
+        view_all_employees_button = tkinter.Button(all_view_window, text="View Employees", command=lambda: self.view_employees(all_selected_restaurant.get()))
+        view_all_employees_button.pack(pady=5)
+
+        view_all_rota_button = tkinter.Button(all_view_window, text="View Rota", command=lambda: self.view_rota(all_selected_restaurant.get()))
+        view_all_rota_button.pack(pady=10)
+
+        create_all_rota_button = tkinter.Button(all_view_window, text="Create Rota", command=lambda: main(self.permissions, all_selected_restaurant.get()))
+        create_all_rota_button.pack(pady=10)
+
+        delete_all_restaurant_button = tkinter.Button(all_view_window, text="Delete Restaurant", command=lambda: self.delete_restaurant_data(all_selected_restaurant.get()))
+        delete_all_restaurant_button.pack(pady=5)
 
     def view_wages(self, restaurant_name):
         if self.permissions < 1:
@@ -309,7 +351,7 @@ class LoginApp:
             self.cur.execute("DELETE FROM Employee_data WHERE restaurantName=?", (restaurant_name,))
 
             self.conn.commit()
-
+            
             # Inform the user that the restaurant and related information have been deleted
             messagebox.showinfo("Success", "Restaurant and related information have been deleted.")
 
