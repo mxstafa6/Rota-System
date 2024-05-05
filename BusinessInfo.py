@@ -206,6 +206,9 @@ class EnterWorkData:
                         f"{self.opening_hours.get('Friday', 'OFF')}-{self.closing_hours.get('Friday', 'OFF')}",
                         f"{self.opening_hours.get('Saturday', 'OFF')}-{self.closing_hours.get('Saturday', 'OFF')}",
                         f"{self.opening_hours.get('Sunday', 'OFF')}-{self.closing_hours.get('Sunday', 'OFF')}"))
+        
+        cursor.execute('''CREATE TABLE IF NOT EXISTS employee_data
+                        (key TEXT, firstname TEXT, lastname TEXT, gender TEXT, age INT, role TEXT, pay FLOAT, restaurantName TEXT)''')
 
         conn.commit()
         conn.close()

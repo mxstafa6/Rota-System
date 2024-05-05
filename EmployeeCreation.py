@@ -86,9 +86,6 @@ class EnterEmployees:
         # Method to enter employee data into the database
         conn = sqlite3.connect('data.db')
         cursor = conn.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS employee_data
-                        (key TEXT, firstname TEXT, lastname TEXT, gender TEXT, age INT, role TEXT, pay FLOAT, restaurantName TEXT)''')
-
         cursor.execute('''INSERT INTO employee_data (key, firstname, lastname, gender, age, role, pay, restaurantName)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (encrypt(self.key), self.data["First Name"], self.data["Last Name"],
                                                              self.data["Gender"], self.data["Age"], self.data["Role"], round(self.hourly_pay, 2), self.data['Restaurant']))
