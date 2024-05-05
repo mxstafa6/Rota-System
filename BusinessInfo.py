@@ -164,7 +164,8 @@ class EnterWorkData:
             if errors:
                 messagebox.showerror("Error", "\n".join(errors))
             else:
-                self.enter_restaurantdata()  # Proceed to enter restaurant data if validation passes
+                self.enter_restaurantdata()
+                hours_window.destroy()  # Proceed to enter restaurant data if validation passes
 
         # Create OK button to validate opening/closing hours
         ok_button = ttk.Button(hours_window, text="Ok", command=check_times)
