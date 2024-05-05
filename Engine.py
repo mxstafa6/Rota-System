@@ -53,10 +53,13 @@ class RestaurantInformationRetriever:
 
 # Main function to create the application window and run the program.
 def main(permissions, restaurant_name):
-    if permissions < 1:
-        messagebox.showerror("Permission Denied", "You need higher permissions to create a rota.")
-        return
-    app = RestaurantInformationRetriever(restaurant_name)
-    root = tk.Tk()
-    RotaApp(root, restaurant_name, app.shifts, app.days)
-    root.mainloop()
+    try:
+        if permissions < 1:
+            messagebox.showerror("Permission Denied", "You need higher permissions to create a rota.")
+            return
+        app = RestaurantInformationRetriever(restaurant_name)
+        root = tk.Tk()
+        RotaApp(root, restaurant_name, app.shifts, app.days)
+        root.mainloop()
+    except:
+        messagebox.showerror("Error", "Not enough data.")
