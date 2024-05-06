@@ -253,7 +253,16 @@ class LoginApp:
             selected_employee.set("Select an employee")
         except:
             messagebox.showerror("Error", "No employee table available.")
+    def delete_employee(self, employee_key):
+        try:
+            # Delete the employee data from the employee_data table
+            self.cur.execute("DELETE FROM employee_data WHERE key=?", (employee_key,))
+            self.conn.commit()
 
+            # Inform the user that the employee has been deleted
+            messagebox.showinfo("Success", "Employee has been deleted successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred while deleting the employee: {str(e)}")
     def edit_employee(self, employee_id):
         # Create a new window for editing employee details
         edit_employee_window = tkinter.Toplevel()
