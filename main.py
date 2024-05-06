@@ -66,8 +66,14 @@ class LoginApp:
 
     # Open the main application window after successful login.
     def open_main_window(self, all_restaurants=False):
-        self.main_window = tkinter.Tk()
+        # Destroy the existing main_window if it exists
+        if hasattr(self, 'main_window'):
+            self.main_window.destroy()
+
+        self.main_window = tkinter.Toplevel(self.root)
         self.main_window.title("Main Menu")
+        self.main_window.protocol("WM_DELETE_WINDOW", self.on_main_window_close)
+
         if all_restaurants:
             view_restaurants_button = tkinter.Button(self.main_window, text="View All Restaurants", command=self.view_all_restaurants)
             view_restaurants_button.pack(pady=10)
@@ -76,8 +82,12 @@ class LoginApp:
             view_restaurants_button.pack(pady=10)
         create_restaurant_button = tkinter.Button(self.main_window, text="Create Restaurant", command=self.create_restaurant)
         create_restaurant_button.pack(pady=10)
+        self.root.withdraw()  # Hide the login window
         self.main_window.mainloop()  # Start the main loop for the main window
-
+    
+    def on_main_window_close(self):
+        self.root.quit()
+    
     def view_all_restaurants(self):
         # Create a new window to display all restaurant names and additional options
         all_view_window = tkinter.Toplevel()
@@ -400,8 +410,15 @@ class LoginApp:
             messagebox.showerror("Permission Denied", "You need higher permissions to create a restaurant.")
             return
         # Create a new window to enter business information
+          # Create a new window to enter business information
         business_window = tkinter.Toplevel()
         business_app = EnterWorkData(business_window)
+        business_window.protocol("WM_DELETE_WINDOW", self.on_business_window_close)
+        business_window.mainloop()
+
+    def on_business_window_close(self):
+        # This method will be called when the business window is closed
+        pass
 
 if __name__ == "__main__":
     root = tkinter.Tk()
