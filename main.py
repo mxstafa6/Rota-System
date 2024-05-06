@@ -375,6 +375,8 @@ class LoginApp:
             # Delete employee data associated with the restaurant
             self.cur.execute("DELETE FROM employee_data WHERE restaurantName=?", (restaurant_name,))
 
+            self.cur.execute("DELETE FROM current_data WHERE restaurantName=?", (restaurant_name,))
+
             self.conn.commit()
 
             # Inform the user that the restaurant and related information have been deleted
