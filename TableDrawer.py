@@ -31,17 +31,22 @@ class Manager(Employee):
         bonus = base_wage * self._bonus_rate
         return base_wage + bonus
 
-# Function to serialize employee data from the database
+class EmployeeFactory:
+    @staticmethod
+    def create_employee(role, firstname, lastname, age, gender, pay, key):
+        if role == "Manager":
+            return Manager(firstname, lastname, age, role, gender, pay, key, bonus_rate=0.1)
+        else:
+            return Employee(firstname, lastname, age, role, gender, pay, key)
+
 def Serialize(employees, keys, restaurant_name):
     conn = sqlite3.connect('data.db')
     cursor = conn.cursor()
     cursor.execute("SELECT firstname, lastname, age, role, gender, pay, key FROM Employee_Data WHERE restaurantName=?", (restaurant_name,))
     for row in cursor.fetchall():
         firstname, lastname, age, role, gender, pay, key = row
-        if role == "Manager":
-            employee = Manager(firstname, lastname, age, role, gender, pay, key, bonus_rate=0.1)
-        else:
-            employee = Employee(firstname, lastname, age, role, gender, pay, key)
+        # Use the factory to create Employee or Manager
+        employee = EmployeeFactory.create_employee(role, firstname, lastname, age, gender, pay, key)
         employees[key] = employee
         keys.append(key)
     conn.close()
