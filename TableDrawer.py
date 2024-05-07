@@ -1,11 +1,50 @@
 import tkinter as tk
-from datetime import datetime, timedelta, date 
-from ObjectCreation import Serialize
+from tkinter import ttk, messagebox
 import sqlite3
-import math
+from datetime import datetime, timedelta, date
 import io
+import math
 from PIL import ImageGrab
 import random
+
+# Base class for all types of employees
+class Employee:
+    def __init__(self, firstname, lastname, age, role, gender, pay, key):
+        self._name = firstname.strip().capitalize() + ' ' + lastname.strip().capitalize()
+        self._age = age
+        self._role = role
+        self._gender = gender
+        self._pay = pay
+        self._key = key
+
+    def calculate_weekly_wage(self, hours_worked):
+        return hours_worked * self._pay
+
+# Derived class for Managers with a bonus calculation
+class Manager(Employee):
+    def __init__(self, firstname, lastname, age, role, gender, pay, key, bonus_rate):
+        super().__init__(firstname, lastname, age, role, gender, pay, key)
+        self._bonus_rate = bonus_rate
+
+    def calculate_weekly_wage(self, hours_worked):
+        base_wage = super().calculate_weekly_wage(hours_worked)
+        bonus = base_wage * self._bonus_rate
+        return base_wage + bonus
+
+# Function to serialize employee data from the database
+def Serialize(employees, keys, restaurant_name):
+    conn = sqlite3.connect('data.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT firstname, lastname, age, role, gender, pay, key FROM Employee_Data WHERE restaurantName=?", (restaurant_name,))
+    for row in cursor.fetchall():
+        firstname, lastname, age, role, gender, pay, key = row
+        if role == "Manager":
+            employee = Manager(firstname, lastname, age, role, gender, pay, key, bonus_rate=0.1)
+        else:
+            employee = Employee(firstname, lastname, age, role, gender, pay, key)
+        employees[key] = employee
+        keys.append(key)
+    conn.close()
 
 class RotaApp:
     def __init__(self, root, restaurant, shifts, days):
@@ -47,9 +86,9 @@ class RotaApp:
         view_wages_button.grid(row=self.row_index, column=1, pady=10, padx=5)
 
     def calculate_max(self):
-        # Determine maximum name and role lengths
-        self.max_name_length = max(len(self.employees[emp_id][0].name) for emp_id in self.employees.keys())
-        self.max_role_length = max(len(self.employees[emp_id][0].role) for emp_id in self.employees.keys())
+    # Determine maximum name and role lengths
+        self.max_name_length = max(len(employee._name) for employee in self.employees.values())
+        self.max_role_length = max(len(employee._role) for employee in self.employees.values())
 
     def day_labels(self):
         # Create labels for days
@@ -60,8 +99,8 @@ class RotaApp:
         # Group employees by role
         employees_by_role = {role: [] for role in self.roles}
         for emp_id in self.employees.keys():
-            employee = self.employees[emp_id][0]
-            employees_by_role[employee.role].append(employee)
+            employee = self.employees[emp_id]  # Removed [0] as it's not a list but an Employee object
+            employees_by_role[employee._role].append(employee)  # Access attribute with dot notation
 
         # Populate timetable with employee data grouped by role
         for role, employees in employees_by_role.items():
@@ -69,9 +108,9 @@ class RotaApp:
                 tk.Label(self.root, text=role, width=self.max_role_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
                 self.row_index += 1
                 for employee in employees:
-                    tk.Label(self.root, text=employee.name, width=self.max_name_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
+                    tk.Label(self.root, text=employee._name, width=self.max_name_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
                     for j, day in enumerate(self.days):
-                        shift_info = employees_shifts[day].get(employee.key)
+                        shift_info = employees_shifts[day].get(employee._key)
                         if shift_info:
                             shift_found = False
                             for shift_tuple in shift_info:
@@ -153,8 +192,10 @@ class RotaApp:
         employees_shifts = {day: {} for day in self.days}
         employees_by_role = {role: [] for role in self.roles}
         for emp_id in self.employees.keys():
-            employee = self.employees[emp_id][0]
-            employees_by_role[employee.role].append(employee)
+            employee = self.employees[emp_id]  # Access the object directly
+            employees_by_role[employee._role].append(employee)  # Access attribute with dot notation
+
+        # Rest of the method remains the same
 
         # Calculate the total shift points needed for each role on each day
         total_shift_points = {day: {role: 0 for role in self.roles} for day in self.days}
@@ -190,9 +231,9 @@ class RotaApp:
                         for _ in range(num_shifts):
                             assigned_shift = todayShifts[shift_index]
                             assignedShifts[day][assigned_shift][role].append(employee)
-                            if employee.key not in employees_shifts[day]:
-                                employees_shifts[day][employee.key] = []
-                            employees_shifts[day][employee.key].append((day, assigned_shift, role))
+                            if employee._key not in employees_shifts[day]:
+                                employees_shifts[day][employee._key] = []
+                            employees_shifts[day][employee._key].append((day, assigned_shift, role))
                             shift_index += 1
         employees_shifts = self.combine_shifts(employees_shifts)
         return employees_shifts
@@ -245,8 +286,9 @@ class RotaApp:
         for day, shifts_info in employees_shifts.items():
             for employee_id, shifts in shifts_info.items():
                 total_hours_worked = 0
-                employee_name = self.employees[employee_id][0].name
-                hourly_pay_rate = self.employees[employee_id][0].pay
+                employee = self.employees[employee_id]  # Get the Employee or Manager object
+                employee_name = employee._name
+                hourly_pay_rate = employee._pay
 
                 for shift in shifts:
                     shift_start, shift_end = shift[1].split('-')
@@ -265,7 +307,7 @@ class RotaApp:
                     print(f"Error: Negative hours worked for employee {employee_id} on {day}")
                     continue  # Skip calculation for this employee
 
-                weekly_wage = total_hours_worked * hourly_pay_rate
+                weekly_wage = employee.calculate_weekly_wage(total_hours_worked)
 
                 # Accumulate total wage for the week for each employee
                 if employee_id not in employee_wages:
@@ -274,11 +316,12 @@ class RotaApp:
 
         # Output total weekly wages for each employee
         for employee_id, total_wage in employee_wages.items():
-            employee_name = self.employees[employee_id][0].name
+            employee_name = self.employees[employee_id]._name
             wages_text += f"{employee_name}: £{total_wage:.2f}\n"
             total_wage_bill += total_wage
 
         wages_text += f"\nTotal Wage Bill: £{total_wage_bill:.2f}"
+        # Rest of the code remains the same
         # Extract the total wages amount from the wages_text
         total_wages = float(wages_text.split('Total Wage Bill: £')[-1].strip())
 
