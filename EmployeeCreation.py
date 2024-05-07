@@ -43,7 +43,7 @@ class EnterEmployees:
             elif label_text == "Gender":
                 entry = ttk.Combobox(self.user_info_frame, values=["Male", "Female", "Other"], state="readonly")
             elif label_text == "Age":
-                entry = tkinter.Spinbox(self.user_info_frame, from_=16, to=110, state="readonly")
+                entry = tkinter.Spinbox(self.user_info_frame, from_=16, to=99, state="readonly")
             elif label_text == "Role":
                 entry = ttk.Combobox(self.user_info_frame, state="readonly")
                 entry['values'] = ['Manager', 'Waiter', 'Runner', 'Bartender', 'Barback']

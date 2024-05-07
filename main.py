@@ -10,7 +10,6 @@ from EmployeeCreation import employee_main
 
 # Master key for the application (should be secured)
 masterKey = 26012006
-
 # LoginApp handles the login process and main window creation.
 class LoginApp:
     def __init__(self, root):
@@ -199,16 +198,18 @@ class LoginApp:
             messagebox.showerror("Error", "No restaurants available to view.")
             view_window.destroy()  # Close the view window as there's nothing to show
             return
-    
+        
     # Define methods for the additional functionalities
     def view_employees(self, restaurant_name):
         if self.permissions < 1:
             messagebox.showerror("Permission Denied", "You need higher permissions to view employees.")
             return
         try:
-            # Query the database to get employees and their keys associated with the selected restaurant
             self.cur.execute("SELECT key, firstname FROM employee_data WHERE restaurantName = ?", (restaurant_name,))
             employee_data = self.cur.fetchall()
+
+            # Sort the employee data in alphabetical order by their first name using Merge Sort
+            merge_sort(employee_data)
 
             # Create a new window to display employee names
             employees_window = tkinter.Toplevel()
@@ -430,7 +431,34 @@ class LoginApp:
     def on_business_window_close(self):
         # This method will be called when the business window is closed
         pass
+def merge_sort(employee_list):
+    if len(employee_list) > 1:
+        mid = len(employee_list) // 2
+        left_half = employee_list[:mid]
+        right_half = employee_list[mid:]
 
+        merge_sort(left_half)
+        merge_sort(right_half)
+
+        i = j = k = 0
+        while i < len(left_half) and j < len(right_half):
+            if left_half[i][1] < right_half[j][1]:  # Compare the names
+                employee_list[k] = left_half[i]
+                i += 1
+            else:
+                employee_list[k] = right_half[j]
+                j += 1
+            k += 1
+
+        while i < len(left_half):
+            employee_list[k] = left_half[i]
+            i += 1
+            k += 1
+
+        while j < len(right_half):
+            employee_list[k] = right_half[j]
+            j += 1
+            k += 1
 if __name__ == "__main__":
     root = tkinter.Tk()
     app = LoginApp(root)
