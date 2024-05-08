@@ -6,6 +6,7 @@ import io
 import math
 from PIL import ImageGrab # type: ignore
 import random
+from Engine import RestaurantInformationRetriever
 
 class Stack:
     def __init__(self):
@@ -100,7 +101,7 @@ class EmployeeFactory:
         else:
             return Employee(firstname, lastname, age, role, gender, pay, key)
 
-def Serialize(employees, keys, restaurant_name):
+def Serialize(keys, restaurant_name):
     conn = sqlite3.connect('data.db')
     cursor = conn.cursor()
     cursor.execute("SELECT firstname, lastname, age, role, gender, pay, key FROM Employee_Data WHERE restaurantName=?", (restaurant_name,))
@@ -115,18 +116,19 @@ def Serialize(employees, keys, restaurant_name):
     return employees_list
 
 class RotaApp:
-    def __init__(self, root, restaurant, shifts, days):
+    def __init__(self, root,  restaurant_name):
         # Initialize RotaApp object
-        self.roles = ['Manager', 'Waiter', 'Runner', 'Bartender', 'Barback']                    
-        self.restaurant = restaurant
+        self.roles = ['Manager', 'Waiter', 'Runner', 'Bartender', 'Barback']   
+        self.restaurant_info = RestaurantInformationRetriever(restaurant_name)      
+        self.restaurant = self.restaurant_info.restaurant_name
         self.employees = LinkedList()
         self.keys = []
-        self.shifts = shifts
-        self.employees = Serialize(self.employees, self.keys, self.restaurant)
+        self.shifts = self.restaurant_info.shifts
+        self.employees = Serialize(self.keys, self.restaurant)
         
         self.root = root
         self.root.title("Weekly Rota")
-        self.days = days
+        self.days = self.restaurant_info.days
     
         self.row_index = 1  # Initialize row index
 
@@ -323,7 +325,6 @@ class RotaApp:
                                 assignedShifts[day_index][role_index].append(employee)
                                 employees_shifts[self.keys.index(employee._key)][day_index][role_index].append((day, assigned_shift, role))
                                 shift_index += 1
-        print(assignedShifts, employees_shifts)
         return employees_shifts
 
     def save_schedule(self):
@@ -371,6 +372,14 @@ class RotaApp:
         total_wage_bill = 0
         employee_wages = {}
         employee_names = self.employees.display()
+
+        # Calculate the average hourly pay
+        self.cursor.execute("SELECT AVG(pay) AS 'Average Hourly Pay' FROM Employee_Data GROUP BY restaurantName;")
+        result = self.cursor.fetchone()
+        if result:
+            average_hourly_pay = result[0]
+        else:
+            average_hourly_pay = 0.0
 
         for employee_index, employee_shifts in enumerate(employees_shifts):
             employee_name = employee_names[employee_index]
@@ -422,9 +431,10 @@ class RotaApp:
             total_wage_bill += total_wage
 
         wages_text += f"\nTotal Wage Bill: £{total_wage_bill:.2f}"
+        wages_text += f"\nAverage Hourly Pay: £{average_hourly_pay:.2f}"
 
         # Extract the total wages amount from the wages_text
-        total_wages = float(wages_text.split('Total Wage Bill: £')[-1].strip())
+        total_wages = float(wages_text.split('Total Wage Bill: £')[-1].split('\n')[0])
 
         # Retrieve the restaurant budget from the restaurant_data table
         self.cursor.execute("SELECT restaurantBudget FROM restaurant_data WHERE restaurantName = ?", (self.restaurant,))
@@ -445,3 +455,13 @@ class RotaApp:
             wages_text = "{}\n\nBudget Status: {}".format(wages_text, budget_status)
 
         return wages_text
+def main(permissions, restaurant_name):
+    try:
+        if permissions < 1:
+            messagebox.showerror("Permission Denied", "You need higher permissions to create a rota.")
+            return
+        root = tk.Tk()
+        RotaApp(root, restaurant_name)
+        root.mainloop()
+    except:
+        messagebox.showerror("Error", "Not enough data.")

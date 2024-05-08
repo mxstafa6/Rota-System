@@ -2,7 +2,7 @@ import sqlite3
 from tkinter import messagebox
 import tkinter as tk
 from datetime import datetime, timedelta
-from TableDrawer import RotaApp
+
 # RestaurantInformationRetriever retrieves and calculates shift information for a restaurant.
 class RestaurantInformationRetriever:
     # Initialize with the restaurant's name and prepare the shifts dictionary.
@@ -50,16 +50,3 @@ class RestaurantInformationRetriever:
                 self.shifts[day] = [f"{(open_datetime + timedelta(minutes=shift_duration * i)):%H:%M}-"
                                     f"{(open_datetime + timedelta(minutes=shift_duration * (i + 1))):%H:%M}"
                                     for i in range(int(num_shifts))]
-
-# Main function to create the application window and run the program.
-def main(permissions, restaurant_name):
-    try:
-        if permissions < 1:
-            messagebox.showerror("Permission Denied", "You need higher permissions to create a rota.")
-            return
-        app = RestaurantInformationRetriever(restaurant_name)
-        root = tk.Tk()
-        RotaApp(root, restaurant_name, app.shifts, app.days)
-        root.mainloop()
-    except:
-        messagebox.showerror("Error", "Not enough data.")
