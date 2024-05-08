@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime, timedelta, date
 import io
 import math
-from PIL import ImageGrab
+from PIL import ImageGrab # type: ignore
 import random
 
 class Stack:
@@ -195,10 +195,10 @@ class RotaApp:
                 for employee in employees:
                     tk.Label(self.root, text=employee._name, width=self.max_name_length, relief=tk.RIDGE).grid(row=self.row_index, column=0)
                     for j, day in enumerate(self.days):
-                        shift_info = employees_shifts[day].get(employee._key)
+                        shift_info = employees_shifts[self.keys.index(employee._key)][j]
                         if shift_info:
                             shift_found = False
-                            for shift_tuple in shift_info:
+                            for shift_tuple in shift_info[self.roles.index(role)]:
                                 shift_day, shift_time, shift_role = shift_tuple
                                 if shift_role == role:
                                     shift_found = True
@@ -236,44 +236,46 @@ class RotaApp:
         return wages_text
 
     def combine_shifts(self, employees_shifts):
-        # Iterate through each day
-        for day, shifts_info in employees_shifts.items():
-            # Iterate through each employee's shifts
-            for employee_id, shifts in shifts_info.items():
-                combined_shifts = []
-                current_shift_start = None
-                current_shift_end = None
-                # Sort shifts by start time
-                shifts.sort(key=lambda x: x[1])
+        # Iterate through each employee
+        for employee_shifts in employees_shifts:
+            # Iterate through each day
+            for day_shifts in employee_shifts:
+                # Iterate through each role
+                for role_shifts in day_shifts:
+                    combined_shifts = []
+                    current_shift_start = None
+                    current_shift_end = None
+                    # Sort shifts by start time
+                    role_shifts.sort(key=lambda x: x[1])
 
-                for shift in shifts:
-                    shift_start, shift_end = shift[1].split('-')
-                    # If no current shift, set it as the current shift
-                    if current_shift_start is None:
-                        current_shift_start = shift_start
-                        current_shift_end = shift_end
-                    # If consecutive shift found, update the end time of the current shift
-                    elif shift_start == current_shift_end:
-                        current_shift_end = shift_end
-                    # If not consecutive, add the current shift and start a new one
-                    else:
-                        combined_shifts.append((day, f"{current_shift_start}-{current_shift_end}", shift[2]))
-                        current_shift_start = shift_start
-                        current_shift_end = shift_end
-                
-                # Add the last combined shift
-                combined_shifts.append((day, f"{current_shift_start}-{current_shift_end}", shift[2]))
+                    for shift in role_shifts:
+                        shift_start, shift_end = shift[1].split('-')
+                        # If no current shift, set it as the current shift
+                        if current_shift_start is None:
+                            current_shift_start = shift_start
+                            current_shift_end = shift_end
+                        # If consecutive shift found, update the end time of the current shift
+                        elif shift_start == current_shift_end:
+                            current_shift_end = shift_end
+                        # If not consecutive, add the current shift and start a new one
+                        else:
+                            combined_shifts.append((shift[0], f"{current_shift_start}-{current_shift_end}", shift[2]))
+                            current_shift_start = shift_start
+                            current_shift_end = shift_end
 
-                # Update employee's shifts with the combined shifts
-                employees_shifts[day][employee_id] = combined_shifts
+                    # Add the last combined shift
+                    combined_shifts.append((shift[0], f"{current_shift_start}-{current_shift_end}", shift[2]))
+
+                    # Update employee's shifts with the combined shifts
+                    day_shifts[day_shifts.index(role_shifts)] = combined_shifts
 
         return employees_shifts
 
     def generate_shift_schedules(self):
         # Initialize necessary variables
         covers = {}
-        assignedShifts = {day: {shift: {role: [] for role in self.roles} for shift in self.shifts[day]} for day in self.days}
-        employees_shifts = {day: {} for day in self.days}
+        assignedShifts = [[[] for _ in range(len(self.roles))] for _ in range(len(self.days))]
+        employees_shifts = [[[[] for _ in range(len(self.roles))] for _ in range(len(self.days))] for _ in range(len(self.keys))]
         employees_by_role = {role: [] for role in self.roles}
         employee_names = self.employees.display()
         for employee_name in employee_names:
@@ -288,9 +290,9 @@ class RotaApp:
         total_shift_points = {day: {role: 0 for role in self.roles} for day in self.days}
         for day in self.days:
             if day != "Sunday":
-                covers[day] = random.randint(25,75)
+                covers[day] = random.randint(25, 75)
             else:
-                covers[day] = random.randint(75,125)
+                covers[day] = random.randint(75, 125)
             for role in self.roles:
                 if role == 'Manager':
                     total_shift_points[day][role] = 1
@@ -298,31 +300,30 @@ class RotaApp:
                     total_shift_points[day][role] = 1
                 elif role == 'Waiter':
                     total_shift_points[day][role] = 1
-                if covers[day]>25:
+                if covers[day] > 25:
                     if role == 'Barback' and covers[day] > 25:
                         total_shift_points[day][role] = 1
                     if role == 'Runner':
                         total_shift_points[day][role] = max(1, min(math.ceil(covers[day] / 50), 4))
 
         # Assign shifts to employees
-        for day in self.days:
-            todayShifts=self.shifts[day]
+        for day_index, day in enumerate(self.days):
+            todayShifts = self.shifts[day]
             employees_needed = {role: total_shift_points[day][role] for role in self.roles}
-            for role in self.roles:
+            for role_index, role in enumerate(self.roles):
                 employeesAvailable = employees_by_role[role]
                 random.shuffle(employeesAvailable)
                 if employees_needed[role] > 0:
                     shifts_per_employee = [len(todayShifts) // len(employeesAvailable) + (1 if i < len(todayShifts) % len(employeesAvailable) else 0) for i in range(len(employeesAvailable))]
                     shift_index = 0
-                    for employee, num_shifts in zip(employeesAvailable, shifts_per_employee):
-                        for _ in range(num_shifts):
-                            assigned_shift = todayShifts[shift_index]
-                            assignedShifts[day][assigned_shift][role].append(employee)
-                            if employee._key not in employees_shifts[day]:
-                                employees_shifts[day][employee._key] = []
-                            employees_shifts[day][employee._key].append((day, assigned_shift, role))
-                            shift_index += 1
-        employees_shifts = self.combine_shifts(employees_shifts)
+                    for employee_index, employee in enumerate(employeesAvailable):
+                        for num_shifts in shifts_per_employee[employee_index:employee_index+1]:
+                            for _ in range(num_shifts):
+                                assigned_shift = todayShifts[shift_index]
+                                assignedShifts[day_index][role_index].append(employee)
+                                employees_shifts[self.keys.index(employee._key)][day_index][role_index].append((day, assigned_shift, role))
+                                shift_index += 1
+        print(assignedShifts, employees_shifts)
         return employees_shifts
 
     def save_schedule(self):
@@ -365,23 +366,26 @@ class RotaApp:
 
         print("Schedule saved to the database.")
 
-        def calculate_wages_text(self, employees_shifts):
-            wages_text = "Weekly Wages:\n"
-            total_wage_bill = 0
-            employee_wages = {}
-            employee_names = self.employees.display()
+    def calculate_wages_text(self, employees_shifts):
+        wages_text = "Weekly Wages:\n"
+        total_wage_bill = 0
+        employee_wages = {}
+        employee_names = self.employees.display()
 
-            for day, shifts_info in employees_shifts.items():
-                for employee_name in employee_names:
-                    employee = self.employees.head
-                    while employee:
-                        if employee.data._name == employee_name:
-                            employee_id = employee.data._key
-                            total_hours_worked = 0
-                            hourly_pay_rate = employee.data._pay
+        for employee_index, employee_shifts in enumerate(employees_shifts):
+            employee_name = employee_names[employee_index]
+            employee = self.employees.head
+            while employee:
+                if employee.data._name == employee_name:
+                    employee_id = employee.data._key
+                    total_hours_worked = 0
+                    hourly_pay_rate = employee.data._pay
 
-                            for shift in shifts_info.get(employee_id, []):
-                                shift_start, shift_end = shift[1].split('-')
+                    for day_shifts in employee_shifts:
+                        for role_shifts in day_shifts:
+                            for shift in role_shifts:
+                                shift_day, shift_time, shift_role = shift
+                                shift_start, shift_end = shift_time.split('-')
                                 start_hour, start_minute = map(int, shift_start.split(':'))
                                 end_hour, end_minute = map(int, shift_end.split(':'))
 
@@ -393,51 +397,51 @@ class RotaApp:
                                 else:
                                     total_hours_worked += end_hour - start_hour + (end_minute - start_minute) / 60
 
-                            if total_hours_worked < 0:
-                                print(f"Error: Negative hours worked for employee {employee_id} on {day}")
-                                continue  # Skip calculation for this employee
+                    if total_hours_worked < 0:
+                        print(f"Error: Negative hours worked for employee {employee_id}")
+                        continue  # Skip calculation for this employee
 
-                            weekly_wage = employee.data.calculate_weekly_wage(total_hours_worked)
+                    weekly_wage = employee.data.calculate_weekly_wage(total_hours_worked)
 
-                            # Accumulate total wage for the week for each employee
-                            if employee_id not in employee_wages:
-                                employee_wages[employee_id] = 0
-                            employee_wages[employee_id] += weekly_wage
+                    # Accumulate total wage for the week for each employee
+                    if employee_id not in employee_wages:
+                        employee_wages[employee_id] = 0
+                    employee_wages[employee_id] += weekly_wage
 
-                        employee = employee.next
+                employee = employee.next
 
-            # Output total weekly wages for each employee
-            for employee_id, total_wage in employee_wages.items():
-                employee = self.employees.head
-                while employee:
-                    if employee.data._key == employee_id:
-                        employee_name = employee.data._name
-                        break
-                    employee = employee.next
-                wages_text += f"{employee_name}: £{total_wage:.2f}\n"
-                total_wage_bill += total_wage
+        # Output total weekly wages for each employee
+        for employee_id, total_wage in employee_wages.items():
+            employee = self.employees.head
+            while employee:
+                if employee.data._key == employee_id:
+                    employee_name = employee.data._name
+                    break
+                employee = employee.next
+            wages_text += f"{employee_name}: £{total_wage:.2f}\n"
+            total_wage_bill += total_wage
 
-            wages_text += f"\nTotal Wage Bill: £{total_wage_bill:.2f}"
+        wages_text += f"\nTotal Wage Bill: £{total_wage_bill:.2f}"
 
-            # Extract the total wages amount from the wages_text
-            total_wages = float(wages_text.split('Total Wage Bill: £')[-1].strip())
+        # Extract the total wages amount from the wages_text
+        total_wages = float(wages_text.split('Total Wage Bill: £')[-1].strip())
 
-            # Retrieve the restaurant budget from the restaurant_data table
-            self.cursor.execute("SELECT restaurantBudget FROM restaurant_data WHERE restaurantName = ?", (self.restaurant, ))
-            budget_data = self.cursor.fetchone()
-            if budget_data:
-                restaurant_budget = float(budget_data[0])
+        # Retrieve the restaurant budget from the restaurant_data table
+        self.cursor.execute("SELECT restaurantBudget FROM restaurant_data WHERE restaurantName = ?", (self.restaurant,))
+        budget_data = self.cursor.fetchone()
+        if budget_data:
+            restaurant_budget = float(budget_data[0])
 
-                # Calculate the difference between the total wages and the restaurant budget
-                budget_difference = total_wages - restaurant_budget
+            # Calculate the difference between the total wages and the restaurant budget
+            budget_difference = total_wages - restaurant_budget
 
-                # Determine the budget status and the amount by which it is over or within the budget
-                if budget_difference > 0:
-                    budget_status = "Over Budget by £{:.2f}".format(budget_difference)
-                else:
-                    budget_status = "Within Budget by £{:.2f}".format(abs(budget_difference))
+            # Determine the budget status and the amount by which it is over or within the budget
+            if budget_difference > 0:
+                budget_status = "Over Budget by £{:.2f}".format(budget_difference)
+            else:
+                budget_status = "Within Budget by £{:.2f}".format(abs(budget_difference))
 
-                # Combine the wages text and the budget status into one string
-                wages_text = "{}\n\nBudget Status: {}".format(wages_text, budget_status)
+            # Combine the wages text and the budget status into one string
+            wages_text = "{}\n\nBudget Status: {}".format(wages_text, budget_status)
 
-            return wages_text
+        return wages_text

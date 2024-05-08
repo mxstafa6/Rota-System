@@ -1,6 +1,6 @@
 import tkinter
 import io
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk # type: ignore
 from tkinter import messagebox, ttk
 import sqlite3
 from Encryption import encrypt
@@ -71,7 +71,6 @@ class LoginApp:
 
         self.main_window = tkinter.Toplevel(self.root)
         self.main_window.title("Main Menu")
-        self.main_window.protocol("WM_DELETE_WINDOW", self.on_main_window_close)
 
         if all_restaurants:
             view_restaurants_button = tkinter.Button(self.main_window, text="View All Restaurants", command=self.view_all_restaurants)
@@ -83,10 +82,7 @@ class LoginApp:
         create_restaurant_button.pack(pady=10)
         self.root.withdraw()  # Hide the login window
         self.main_window.mainloop()  # Start the main loop for the main window
-    
-    def on_main_window_close(self):
-        self.root.quit()
-    
+        
     def view_all_restaurants(self):
         # Create a new window to display all restaurant names and additional options
         all_view_window = tkinter.Toplevel()
@@ -425,12 +421,12 @@ class LoginApp:
           # Create a new window to enter business information
         business_window = tkinter.Toplevel()
         business_app = EnterWorkData(business_window)
-        business_window.protocol("WM_DELETE_WINDOW", self.on_business_window_close)
-        business_window.mainloop()
 
     def on_business_window_close(self):
         # This method will be called when the business window is closed
         pass
+
+#Sorts employees alphabetically
 def merge_sort(employee_list):
     if len(employee_list) > 1:
         mid = len(employee_list) // 2
@@ -459,6 +455,7 @@ def merge_sort(employee_list):
             employee_list[k] = right_half[j]
             j += 1
             k += 1
+
 if __name__ == "__main__":
     root = tkinter.Tk()
     app = LoginApp(root)
