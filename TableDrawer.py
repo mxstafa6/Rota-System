@@ -7,6 +7,67 @@ import math
 from PIL import ImageGrab
 import random
 
+class Stack:
+    def __init__(self):
+        self.items = []
+
+    def push(self, item):
+        self.items.append(item)
+
+    def pop(self):
+        if self.items:
+            return self.items.pop()
+
+    def peek(self):
+        if self.items:
+            return self.items[-1]
+
+    def is_empty(self):
+        return len(self.items) == 0
+
+    def size(self):
+        return len(self.items)
+
+# Node class for the linked list
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+
+# Linked list class implementation
+class LinkedList:
+    def __init__(self):
+        self.head = None
+
+    def append(self, data):
+        new_node = Node(data)
+        if not self.head:
+            self.head = new_node
+        else:
+            current = self.head
+            while current.next:
+                current = current.next
+            current.next = new_node
+
+    def remove(self, key):
+        current = self.head
+        previous = None
+        while current and current.data._key != key:
+            previous = current
+            current = current.next
+        if previous is None:
+            self.head = current.next
+        elif current:
+            previous.next = current.next
+
+    def display(self):
+        elements = []
+        current = self.head
+        while current:
+            elements.append(current.data._name)
+            current = current.next
+        return elements
+
 # Base class for all types of employees
 class Employee:
     def __init__(self, firstname, lastname, age, role, gender, pay, key):
@@ -43,23 +104,25 @@ def Serialize(employees, keys, restaurant_name):
     conn = sqlite3.connect('data.db')
     cursor = conn.cursor()
     cursor.execute("SELECT firstname, lastname, age, role, gender, pay, key FROM Employee_Data WHERE restaurantName=?", (restaurant_name,))
+    employees_list = LinkedList()  # Create a new linked list
     for row in cursor.fetchall():
         firstname, lastname, age, role, gender, pay, key = row
         # Use the factory to create Employee or Manager
         employee = EmployeeFactory.create_employee(role, firstname, lastname, age, gender, pay, key)
-        employees[key] = employee
+        employees_list.append(employee)  # Append the employee to the linked list
         keys.append(key)
     conn.close()
+    return employees_list
 
 class RotaApp:
     def __init__(self, root, restaurant, shifts, days):
         # Initialize RotaApp object
         self.roles = ['Manager', 'Waiter', 'Runner', 'Bartender', 'Barback']                    
         self.restaurant = restaurant
-        self.employees = {}
+        self.employees = LinkedList()
         self.keys = []
         self.shifts = shifts
-        Serialize(self.employees, self.keys, self.restaurant)
+        self.employees = Serialize(self.employees, self.keys, self.restaurant)
         
         self.root = root
         self.root.title("Weekly Rota")
@@ -91,21 +154,38 @@ class RotaApp:
         view_wages_button.grid(row=self.row_index, column=1, pady=10, padx=5)
 
     def calculate_max(self):
-    # Determine maximum name and role lengths
-        self.max_name_length = max(len(employee._name) for employee in self.employees.values())
-        self.max_role_length = max(len(employee._role) for employee in self.employees.values())
+        # Determine maximum name and role lengths
+        max_name_length = 0
+        max_role_length = 0
+        current = self.employees.head
+        while current:
+            max_name_length = max(max_name_length, len(current.data._name))
+            max_role_length = max(max_role_length, len(current.data._role))
+            current = current.next
+        self.max_name_length = max_name_length
+        self.max_role_length = max_role_length
 
     def day_labels(self):
-        # Create labels for days
+        # Create a stack to manage the day labels
+        day_label_stack = Stack()
         for i, day in enumerate(self.days):
-            tk.Label(self.root, text=day, width=10, relief=tk.RIDGE).grid(row=1, column=i + 1)
+            label = tk.Label(self.root, text=day, width=10, relief=tk.RIDGE)
+            label.grid(row=1, column=i + 1)
+            day_label_stack.push(label) # Push the label onto the stack
 
+        while not day_label_stack.is_empty():
+            label = day_label_stack.pop()  # Pop the label from the stack
     def populate_table(self, employees_shifts):
         # Group employees by role
         employees_by_role = {role: [] for role in self.roles}
-        for emp_id in self.employees.keys():
-            employee = self.employees[emp_id]  # Removed [0] as it's not a list but an Employee object
-            employees_by_role[employee._role].append(employee)  # Access attribute with dot notation
+        employee_names = self.employees.display()
+        for employee_name in employee_names:
+            employee = self.employees.head
+            while employee:
+                if employee.data._name == employee_name:
+                    employees_by_role[employee.data._role].append(employee.data)
+                    break
+                employee = employee.next
 
         # Populate timetable with employee data grouped by role
         for role, employees in employees_by_role.items():
@@ -189,18 +269,20 @@ class RotaApp:
 
         return employees_shifts
 
-
     def generate_shift_schedules(self):
         # Initialize necessary variables
         covers = {}
         assignedShifts = {day: {shift: {role: [] for role in self.roles} for shift in self.shifts[day]} for day in self.days}
         employees_shifts = {day: {} for day in self.days}
         employees_by_role = {role: [] for role in self.roles}
-        for emp_id in self.employees.keys():
-            employee = self.employees[emp_id]  # Access the object directly
-            employees_by_role[employee._role].append(employee)  # Access attribute with dot notation
-
-        # Rest of the method remains the same
+        employee_names = self.employees.display()
+        for employee_name in employee_names:
+            employee = self.employees.head
+            while employee:
+                if employee.data._name == employee_name:
+                    employees_by_role[employee.data._role].append(employee.data)
+                    break
+                employee = employee.next
 
         # Calculate the total shift points needed for each role on each day
         total_shift_points = {day: {role: 0 for role in self.roles} for day in self.days}
@@ -242,7 +324,7 @@ class RotaApp:
                             shift_index += 1
         employees_shifts = self.combine_shifts(employees_shifts)
         return employees_shifts
-    
+
     def save_schedule(self):
         # Get the dimensions of the GUI window
         window_width = self.root.winfo_width()
@@ -270,7 +352,6 @@ class RotaApp:
         # Convert first day of the week to string in the format "dd/mm/yyyy"
         first_day_of_week_str = first_day_of_week.strftime('%d-%m-%Y')
 
-
         # Update 'currentRota' column with the rota PNG
         self.cursor.execute(f"UPDATE current_data SET currentRota = ? WHERE restaurantName = ?", (img_byte_arr, self.restaurant))
 
@@ -283,70 +364,80 @@ class RotaApp:
         self.conn.commit()
 
         print("Schedule saved to the database.")
-    def calculate_wages_text(self, employees_shifts):
-        wages_text = "Weekly Wages:\n"
-        total_wage_bill = 0
-        employee_wages = {}
 
-        for day, shifts_info in employees_shifts.items():
-            for employee_id, shifts in shifts_info.items():
-                total_hours_worked = 0
-                employee = self.employees[employee_id]  # Get the Employee or Manager object
-                employee_name = employee._name
-                hourly_pay_rate = employee._pay
+        def calculate_wages_text(self, employees_shifts):
+            wages_text = "Weekly Wages:\n"
+            total_wage_bill = 0
+            employee_wages = {}
+            employee_names = self.employees.display()
 
-                for shift in shifts:
-                    shift_start, shift_end = shift[1].split('-')
-                    start_hour, start_minute = map(int, shift_start.split(':'))
-                    end_hour, end_minute = map(int, shift_end.split(':'))
+            for day, shifts_info in employees_shifts.items():
+                for employee_name in employee_names:
+                    employee = self.employees.head
+                    while employee:
+                        if employee.data._name == employee_name:
+                            employee_id = employee.data._key
+                            total_hours_worked = 0
+                            hourly_pay_rate = employee.data._pay
 
-                    if end_hour == 0:  # Handle shifts ending at midnight
-                        end_hour = 24
+                            for shift in shifts_info.get(employee_id, []):
+                                shift_start, shift_end = shift[1].split('-')
+                                start_hour, start_minute = map(int, shift_start.split(':'))
+                                end_hour, end_minute = map(int, shift_end.split(':'))
 
-                    if start_hour > end_hour:  # Adjust for shifts starting before midnight and ending after midnight
-                        total_hours_worked += (24 - start_hour) + end_hour + (end_minute - start_minute) / 60
-                    else:
-                        total_hours_worked += end_hour - start_hour + (end_minute - start_minute) / 60
+                                if end_hour == 0:  # Handle shifts ending at midnight
+                                    end_hour = 24
 
-                if total_hours_worked < 0:
-                    print(f"Error: Negative hours worked for employee {employee_id} on {day}")
-                    continue  # Skip calculation for this employee
+                                if start_hour > end_hour:  # Adjust for shifts starting before midnight and ending after midnight
+                                    total_hours_worked += (24 - start_hour) + end_hour + (end_minute - start_minute) / 60
+                                else:
+                                    total_hours_worked += end_hour - start_hour + (end_minute - start_minute) / 60
 
-                weekly_wage = employee.calculate_weekly_wage(total_hours_worked)
+                            if total_hours_worked < 0:
+                                print(f"Error: Negative hours worked for employee {employee_id} on {day}")
+                                continue  # Skip calculation for this employee
 
-                # Accumulate total wage for the week for each employee
-                if employee_id not in employee_wages:
-                    employee_wages[employee_id] = 0
-                employee_wages[employee_id] += weekly_wage
+                            weekly_wage = employee.data.calculate_weekly_wage(total_hours_worked)
 
-        # Output total weekly wages for each employee
-        for employee_id, total_wage in employee_wages.items():
-            employee_name = self.employees[employee_id]._name
-            wages_text += f"{employee_name}: £{total_wage:.2f}\n"
-            total_wage_bill += total_wage
+                            # Accumulate total wage for the week for each employee
+                            if employee_id not in employee_wages:
+                                employee_wages[employee_id] = 0
+                            employee_wages[employee_id] += weekly_wage
 
-        wages_text += f"\nTotal Wage Bill: £{total_wage_bill:.2f}"
-        # Rest of the code remains the same
-        # Extract the total wages amount from the wages_text
-        total_wages = float(wages_text.split('Total Wage Bill: £')[-1].strip())
+                        employee = employee.next
 
-        # Retrieve the restaurant budget from the restaurant_data table
-        self.cursor.execute("SELECT restaurantBudget FROM restaurant_data WHERE restaurantName = ?", (self.restaurant, ))
-        budget_data = self.cursor.fetchone()
-        if budget_data:
-            restaurant_budget = float(budget_data[0])
+            # Output total weekly wages for each employee
+            for employee_id, total_wage in employee_wages.items():
+                employee = self.employees.head
+                while employee:
+                    if employee.data._key == employee_id:
+                        employee_name = employee.data._name
+                        break
+                    employee = employee.next
+                wages_text += f"{employee_name}: £{total_wage:.2f}\n"
+                total_wage_bill += total_wage
 
-            # Calculate the difference between the total wages and the restaurant budget
-            budget_difference = total_wages - restaurant_budget
+            wages_text += f"\nTotal Wage Bill: £{total_wage_bill:.2f}"
 
-            # Determine the budget status and the amount by which it is over or within the budget
-            if budget_difference > 0:
-                budget_status = "Over Budget by £{:.2f}".format(budget_difference)
-            else:
-                budget_status = "Within Budget by £{:.2f}".format(abs(budget_difference))
+            # Extract the total wages amount from the wages_text
+            total_wages = float(wages_text.split('Total Wage Bill: £')[-1].strip())
 
-            # Combine the wages text and the budget status into one string
-            wages_text = "{}\n\nBudget Status: {}".format(wages_text, budget_status)
+            # Retrieve the restaurant budget from the restaurant_data table
+            self.cursor.execute("SELECT restaurantBudget FROM restaurant_data WHERE restaurantName = ?", (self.restaurant, ))
+            budget_data = self.cursor.fetchone()
+            if budget_data:
+                restaurant_budget = float(budget_data[0])
 
-        return wages_text
+                # Calculate the difference between the total wages and the restaurant budget
+                budget_difference = total_wages - restaurant_budget
 
+                # Determine the budget status and the amount by which it is over or within the budget
+                if budget_difference > 0:
+                    budget_status = "Over Budget by £{:.2f}".format(budget_difference)
+                else:
+                    budget_status = "Within Budget by £{:.2f}".format(abs(budget_difference))
+
+                # Combine the wages text and the budget status into one string
+                wages_text = "{}\n\nBudget Status: {}".format(wages_text, budget_status)
+
+            return wages_text
