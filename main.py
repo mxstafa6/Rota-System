@@ -7,7 +7,7 @@ from Encryption import encrypt
 from BusinessInfo import EnterWorkData
 from TableDrawer import main
 from EmployeeCreation import employee_main
-
+from TableDrawer import Stack
 # Master key for the application (should be secured)
 masterKey = 26012006
 # LoginApp handles the login process and main window creation.
@@ -19,6 +19,7 @@ class LoginApp:
         self.roles = ['Manager', 'Waiter', 'Runner', 'Bartender', 'Barback']
         self.setup_widgets()
         self.setup_db_connection()
+        self.action_stack = Stack()
 
     # Set up the login widgets.
     def setup_widgets(self):
@@ -80,9 +81,33 @@ class LoginApp:
             view_restaurants_button.pack(pady=10)
         create_restaurant_button = tkinter.Button(self.main_window, text="Create Restaurant", command=self.create_restaurant)
         create_restaurant_button.pack(pady=10)
+        # Button to view the action stack
+        view_action_stack_button = tkinter.Button(self.main_window, text="View Action Stack", command=self.view_action_stack)
+        view_action_stack_button.pack(pady=10)
         self.root.withdraw()  # Hide the login window
         self.main_window.mainloop()  # Start the main loop for the main window
-        
+    def view_action_stack(self):
+        if self.permissions < 1:
+            messagebox.showerror("Permission Denied", "You need higher permissions to view past actions.")
+            return
+        # Create a new window to display the action stack
+        stack_window = tkinter.Toplevel()
+        stack_window.title("Action Stack")
+
+        # Create a listbox to display the action stack
+        stack_listbox = tkinter.Listbox(stack_window, width=50)
+        stack_listbox.pack(padx=10, pady=10)
+
+        # Populate the listbox with the contents of the action stack
+        for action in reversed(self.action_stack.items):
+            if action[1] == "employee_update":
+                employee_id, _, _ = action
+                stack_listbox.insert(tkinter.END, f"Edited employee {employee_id}")
+            elif action[1] == "budget_update":
+                restaurant_name, _, _ = action
+                stack_listbox.insert(tkinter.END, f"Updated budget for {restaurant_name}")
+            elif action[0] == "create_restaurant":  # Check for the specific action tuple
+                stack_listbox.insert(tkinter.END, "Created a new restaurant")
     def view_all_restaurants(self):
         # Create a new window to display all restaurant names and additional options
         all_view_window = tkinter.Toplevel()
@@ -312,6 +337,9 @@ class LoginApp:
         except ValueError:
             messagebox.showerror("Error", "Pay must be a valid number.")
             return
+        # Push the current employee details to the action stack
+          # Push a generic message to the action stack without details
+        self.action_stack.push((employee_id, "employee_update", None))
 
         # Update the employee details in the database using the employee ID
         self.cur.execute("UPDATE employee_data SET age = ?, role = ?, pay = ? WHERE key = ?",
@@ -400,7 +428,8 @@ class LoginApp:
         except ValueError:
             messagebox.showerror("Error", "Weekly budget must be a valid number.")
             return
-
+        # Push the current budget to the action stack
+        self.action_stack.push((restaurantName, "budget_update", None))
         # Update the budget in the database
         conn = sqlite3.connect('data.db')
         cursor = conn.cursor()
@@ -417,14 +446,12 @@ class LoginApp:
         if self.permissions < 2:
             messagebox.showerror("Permission Denied", "You need higher permissions to create a restaurant.")
             return
+
         # Create a new window to enter business information
-          # Create a new window to enter business information
         business_window = tkinter.Toplevel()
         business_app = EnterWorkData(business_window)
 
-    def on_business_window_close(self):
-        # This method will be called when the business window is closed
-        pass
+        self.action_stack.push(("create_restaurant", None, None))
 
 #Sorts employees alphabetically
 def merge_sort(employee_list):
