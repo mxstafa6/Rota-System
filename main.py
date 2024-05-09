@@ -5,9 +5,9 @@ from tkinter import messagebox, ttk
 import sqlite3
 from Encryption import encrypt
 from BusinessInfo import EnterWorkData
-from TableDrawer import main
+from TableDrawer import main, Stack
 from EmployeeCreation import employee_main
-from TableDrawer import Stack
+
 # Master key for the application (should be secured)
 masterKey = 26012006
 # LoginApp handles the login process and main window creation.
